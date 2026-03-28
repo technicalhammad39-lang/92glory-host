@@ -36,8 +36,8 @@ Valid example with your Hostinger host:
    - `pnpm dev`
 
 ## Scripts
-- `pnpm db:migrate` -> apply committed migrations (`prisma migrate deploy`)
-- `pnpm db:prepare` -> deploy migrations, and auto-baseline on `P3005` (non-empty DB without migration history)
+- `pnpm db:migrate` -> deploy migrations with auto-normalized Hostinger URL + auto-baseline on `P3005`
+- `pnpm db:prepare` -> same as `db:migrate`
 - `pnpm db:migrate:dev` -> create/apply new migration in development
 - `pnpm db:status` -> migration status
 - `pnpm build:hostinger` -> db prepare + build

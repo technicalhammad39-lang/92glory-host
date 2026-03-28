@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "node ./scripts/start-server.mjs",
     "build:hostinger": "pnpm db:prepare && pnpm build",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node ./scripts/prepare-db.mjs",
     "db:prepare": "node ./scripts/prepare-db.mjs",
     "db:migrate:dev": "prisma migrate dev",
     "db:status": "prisma migrate status",

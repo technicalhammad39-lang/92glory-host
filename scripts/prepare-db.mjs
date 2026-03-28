@@ -4,6 +4,30 @@ import path from 'node:path';
 
 const prismaCliPath = path.join(process.cwd(), 'node_modules', 'prisma', 'build', 'index.js');
 
+function sanitizeDatabaseUrl(url) {
+  if (!url) return url;
+  if (!url.includes('(mailto:') || !url.includes('[') || !url.includes(']')) return url;
+
+  const match = url.match(/^(mysql:\/\/[^:]+:)\[([^\]]+)\]\(mailto:[^)]+\)(:[0-9]+\/.+)$/i);
+  if (!match) return url;
+
+  const prefix = match[1];
+  const combined = match[2];
+  const suffix = match[3];
+  const at = combined.lastIndexOf('@');
+  if (at === -1) return url;
+
+  const password = combined.slice(0, at);
+  const host = combined.slice(at + 1);
+  return `${prefix}${password}@${host}${suffix}`;
+}
+
+const normalizedDatabaseUrl = sanitizeDatabaseUrl(process.env.DATABASE_URL);
+if (normalizedDatabaseUrl && normalizedDatabaseUrl !== process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = normalizedDatabaseUrl;
+  process.stderr.write('[DB] DATABASE_URL was auto-normalized from markdown format.\n');
+}
+
 function runPrisma(args) {
   const result = spawnSync(process.execPath, [prismaCliPath, ...args], {
     env: process.env,

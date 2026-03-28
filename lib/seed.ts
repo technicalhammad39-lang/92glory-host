@@ -205,23 +205,35 @@ async function runSeed() {
     });
   }
 
-  const password = await bcrypt.hash('admin123', 10);
-  const uid = await generateUniqueUid();
-  await db.user.upsert({
-    where: { inviteCode: 'ADMIN92' },
-    update: {},
-    create: {
-      phone: '03000000000',
-      uid,
-      name: `Admin-${defaultMemberName(uid).slice(-4)}`,
-      password,
-      inviteCode: 'ADMIN92',
-      role: 'ADMIN',
-      balance: 5000,
-      vipLevel: 2,
-      exp: 397
+  const adminByInvite = await db.user.findUnique({ where: { inviteCode: 'ADMIN92' } });
+  if (adminByInvite) {
+    if (adminByInvite.role !== 'ADMIN') {
+      await db.user.update({
+        where: { id: adminByInvite.id },
+        data: { role: 'ADMIN' }
+      });
     }
-  });
+  } else {
+    const anyAdmin = await db.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } });
+    if (!anyAdmin) {
+      const password = await bcrypt.hash('admin123', 10);
+      const uid = await generateUniqueUid();
+      await db.user.create({
+        data: {
+          phone: null,
+          email: null,
+          uid,
+          name: `Admin-${defaultMemberName(uid).slice(-4)}`,
+          password,
+          inviteCode: 'ADMIN92',
+          role: 'ADMIN',
+          balance: 5000,
+          vipLevel: 2,
+          exp: 397
+        }
+      });
+    }
+  }
 
   const bannerCount = await db.banner.count();
   if (!bannerCount) {
@@ -291,10 +303,17 @@ async function runSeed() {
 }
 
 export async function ensureSeeded() {
-  const allowRuntimeSeed = process.env.ENABLE_RUNTIME_SEED !== 'false';
-  if (!allowRuntimeSeed) {
-    global.__seedDone = true;
-    return;
+  if (process.env.ENABLE_RUNTIME_SEED === 'false') {
+    const [hasCategories, hasGames, hasBanners] = await Promise.all([
+      db.category.count().then((n) => n > 0).catch(() => false),
+      db.game.count().then((n) => n > 0).catch(() => false),
+      db.banner.count().then((n) => n > 0).catch(() => false)
+    ]);
+
+    if (hasCategories && hasGames && hasBanners) {
+      global.__seedDone = true;
+      return;
+    }
   }
 
   if (global.__seedDone) return;

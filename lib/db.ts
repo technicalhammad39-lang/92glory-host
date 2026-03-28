@@ -7,15 +7,42 @@ declare global {
 const rawDatabaseUrl = process.env.DATABASE_URL?.trim();
 const fallbackUrl = 'mysql://invalid:invalid@127.0.0.1:1/invalid';
 
+function sanitizeDatabaseUrl(url?: string) {
+  if (!url) return url;
+  if (!url.includes('(mailto:') || !url.includes('[') || !url.includes(']')) return url;
+
+  // Handle accidentally pasted markdown-style DSN:
+  // mysql://user:[password@host](mailto:password@host):3306/db
+  const match = url.match(/^(mysql:\/\/[^:]+:)\[([^\]]+)\]\(mailto:[^)]+\)(:[0-9]+\/.+)$/i);
+  if (!match) return url;
+
+  const prefix = match[1];
+  const combined = match[2];
+  const suffix = match[3];
+  const at = combined.lastIndexOf('@');
+  if (at === -1) return url;
+
+  const password = combined.slice(0, at);
+  const host = combined.slice(at + 1);
+  const normalized = `${prefix}${password}@${host}${suffix}`;
+  return normalized;
+}
+
+const normalizedDatabaseUrl = sanitizeDatabaseUrl(rawDatabaseUrl);
+if (normalizedDatabaseUrl && normalizedDatabaseUrl !== rawDatabaseUrl) {
+  process.env.DATABASE_URL = normalizedDatabaseUrl;
+  console.warn('[DB] DATABASE_URL was auto-normalized from markdown format.');
+}
+
 function validateDatabaseUrl(url?: string) {
   if (!url) return { ok: false, message: 'DATABASE_URL is missing.' };
   if (!url.toLowerCase().startsWith('mysql://')) {
     return { ok: false, message: 'DATABASE_URL must start with mysql://.' };
   }
-  if (url.includes('mailto:') || url.includes('[') || url.includes(']')) {
+  if (url.includes('mailto:') || url.includes('[') || url.includes(']') || url.includes('(') || url.includes(')')) {
     return {
       ok: false,
-      message: 'DATABASE_URL includes invalid markdown/email formatting. Use plain MySQL URL only.'
+      message: 'DATABASE_URL includes invalid formatting. Use a plain MySQL URL.'
     };
   }
 
@@ -31,7 +58,7 @@ function validateDatabaseUrl(url?: string) {
   }
 }
 
-const databaseUrlValidation = validateDatabaseUrl(rawDatabaseUrl);
+const databaseUrlValidation = validateDatabaseUrl(normalizedDatabaseUrl);
 if (!databaseUrlValidation.ok) {
   console.error(`[DB] ${databaseUrlValidation.message}`);
 }
