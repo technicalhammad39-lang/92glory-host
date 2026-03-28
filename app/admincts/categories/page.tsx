@@ -4,6 +4,16 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
 
+const parseProviders = (raw?: string | null) => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function AdminCategories() {
   const { token } = useAuthStore();
   const [categories, setCategories] = useState<any[]>([]);
@@ -41,7 +51,7 @@ export default function AdminCategories() {
       name: cat.name,
       icon: cat.icon,
       order: cat.order || 0,
-      providers: cat.providers ? JSON.parse(cat.providers).join(', ') : '',
+      providers: parseProviders(cat.providers).join(', '),
       isActive: cat.isActive
     });
   };

@@ -189,9 +189,7 @@ const defaultPages = [
 ];
 
 declare global {
-  // eslint-disable-next-line no-var
   var __seedPromise: Promise<void> | undefined;
-  // eslint-disable-next-line no-var
   var __seedDone: boolean | undefined;
 }
 
@@ -302,6 +300,13 @@ async function runSeed() {
 }
 
 export async function ensureSeeded() {
+  const allowRuntimeSeed =
+    process.env.NODE_ENV !== 'production' || process.env.ENABLE_RUNTIME_SEED === 'true';
+  if (!allowRuntimeSeed) {
+    global.__seedDone = true;
+    return;
+  }
+
   if (global.__seedDone) return;
   if (!global.__seedPromise) {
     global.__seedPromise = runSeed()

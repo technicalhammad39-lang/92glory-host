@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 
 export default function AdminUsers() {
@@ -9,15 +9,15 @@ export default function AdminUsers() {
   const [editing, setEditing] = useState<any | null>(null);
   const [balance, setBalance] = useState('');
 
-  const load = () => {
+  const load = useCallback(() => {
     fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => res.json())
       .then((data) => setUsers(data.users || []));
-  };
+  }, [token]);
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
 
   const saveBalance = async () => {
     if (!editing) return;

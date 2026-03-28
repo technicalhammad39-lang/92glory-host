@@ -43,6 +43,16 @@ interface PopupItem {
 }
 
 const FALLBACK_GAME_IMAGE = '/card1.png';
+const parseProviderList = (raw?: string | null): string[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
 const SECTION_SUBTITLES: Record<string, string> = {
   lottery: 'Fair and diverse lottery gameplay',
   slots: 'Online real-time game dealers, all verified fair games',
@@ -94,10 +104,8 @@ export default function HomePage() {
 
         const defaults: Record<string, string> = {};
         (data.categories || []).forEach((cat: CategoryItem) => {
-          if (cat.providers) {
-            const list = JSON.parse(cat.providers) as string[];
-            defaults[cat.key] = list[0];
-          }
+          const list = parseProviderList(cat.providers);
+          if (list.length) defaults[cat.key] = list[0];
         });
         setActiveProviders(defaults);
       });
@@ -302,7 +310,7 @@ export default function HomePage() {
 
       {/* Sections */}
       {gamesByCategory.map((section) => {
-        const providers = section.providers ? (JSON.parse(section.providers) as string[]) : [];
+        const providers = parseProviderList(section.providers);
         const filtered = providers.length
           ? section.games.filter((g) => (activeProviders[section.key] ? g.provider === activeProviders[section.key] : true))
           : section.games;

@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 
 export default function AdminTransactions() {
   const { token } = useAuthStore();
   const [transactions, setTransactions] = useState<any[]>([]);
 
-  const load = () => {
+  const load = useCallback(() => {
     fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => res.json())
       .then((data) => setTransactions(data.transactions || []));
-  };
+  }, [token]);
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, [load]);
 
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/transactions/${id}`, {
