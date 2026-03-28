@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String?
+  phone        String?       @unique
+  email        String?       @unique
+  uid          String?       @unique
+  inviteCode   String        @unique
+  password     String
+  balance      Float         @default(0.0)
+  vipLevel     Int           @default(0)
+  exp          Int           @default(0)
+  role         String        @default("USER") // USER or ADMIN
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  downlines    User[]        @relation("UserToDownlines")
+  uplineId     String?
+  upline       User?         @relation("UserToDownlines", fields: [uplineId], references: [id])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS, BONUS
+  amount    Float
+  status    String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  meta      String?
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  image     String
+  link      String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  placement String   @default("home")
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  title     String
+  description String?
+  image     String
+  type      String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Popup {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  icon      String
+  providers String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  image     String
+  provider  String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model VipLevel {
+  id          String   @id @default(cuid())
+  level       Int      @unique
+  title       String?
+  expRequired Int
+  payoutDays  Int      @default(5)
+  betToExp    Int      @default(100)
+  isOpen      Boolean  @default(true)
+  cardImage   String?
+  badgeImage  String?
+  createdAt   DateTime @default(now())
+}
+
+model VipBenefit {
+  id             String   @id @default(cuid())
+  level          Int
+  group          String   // LEVEL or MY
+  title          String
+  description    String?
+  image          String
+  value          String?
+  secondaryValue String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model SiteConfig {
+  id                    String   @id @default(cuid())
+  brandName             String   @default("92 Glory0")
+  announcement          String?
+  announcementButton    String?  @default("Detail")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model ContentPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model PromotionSetting {
+  id             String   @id @default(cuid())
+  commissionRate Float    @default(0.1)
+  rebateRate     Float    @default(0.15)
+  customerService String?
+  updatedAt      DateTime @updatedAt
+}
