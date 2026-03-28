@@ -6,7 +6,10 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "node ./scripts/start-server.mjs",
+    "build:hostinger": "pnpm db:migrate && pnpm build",
     "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:status": "prisma migrate status",
     "lint": "eslint .",
     "postinstall": "prisma generate"
   },

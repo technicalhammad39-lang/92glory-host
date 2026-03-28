@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -34,7 +34,7 @@ model Transaction {
   type      String // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS, BONUS
   amount    Float
   status    String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
-  meta      String?
+  meta      String?  @db.Text
   createdAt DateTime @default(now())
 }
 
@@ -49,20 +49,20 @@ model Banner {
 }
 
 model Activity {
-  id        String   @id @default(cuid())
-  title     String
-  description String?
-  image     String
-  type      String
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  image       String
+  type        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 }
 
 model Popup {
   id        String   @id @default(cuid())
   title     String
-  content   String
+  content   String   @db.Text
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -73,7 +73,7 @@ model Category {
   key       String   @unique
   name      String
   icon      String
-  providers String?
+  providers String?  @db.Text
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -106,7 +106,7 @@ model VipLevel {
 model VipBenefit {
   id             String   @id @default(cuid())
   level          Int
-  group          String   // LEVEL or MY
+  group          String // LEVEL or MY
   title          String
   description    String?
   image          String
@@ -117,28 +117,28 @@ model VipBenefit {
 }
 
 model SiteConfig {
-  id                    String   @id @default(cuid())
-  brandName             String   @default("92 Glory0")
-  announcement          String?
-  announcementButton    String?  @default("Detail")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  brandName          String   @default("92 Glory0")
+  announcement       String?  @db.Text
+  announcementButton String?  @default("Detail")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model ContentPage {
   id        String   @id @default(cuid())
   slug      String   @unique
   title     String
-  content   String
+  content   String   @db.Text
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 
 model PromotionSetting {
-  id             String   @id @default(cuid())
-  commissionRate Float    @default(0.1)
-  rebateRate     Float    @default(0.15)
-  customerService String?
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(cuid())
+  commissionRate  Float    @default(0.1)
+  rebateRate      Float    @default(0.15)
+  customerService String?  @db.Text
+  updatedAt       DateTime @updatedAt
 }
