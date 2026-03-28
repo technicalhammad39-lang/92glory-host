@@ -108,6 +108,12 @@ export default function HomePage() {
           if (list.length) defaults[cat.key] = list[0];
         });
         setActiveProviders(defaults);
+      })
+      .catch(() => {
+        setBanners([]);
+        setCategories([]);
+        setGames([]);
+        setPopups([]);
       });
   }, []);
 

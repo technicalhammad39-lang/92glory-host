@@ -10,11 +10,12 @@ export default function PromotionDetailPage() {
 
   useEffect(() => {
     fetch('/api/content-pages')
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : { pages: [] }))
       .then((data) => {
         const page = (data.pages || []).find((p: any) => p.slug === params.slug);
         if (page) setContent({ title: page.title, content: page.content });
-      });
+      })
+      .catch(() => setContent(null));
   }, [params.slug]);
 
   return (

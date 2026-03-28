@@ -19,20 +19,25 @@ export async function PUT(req: NextRequest) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const incomingBrand = body.brandName === undefined ? undefined : String(body.brandName || '').trim();
+    if (incomingBrand !== undefined && !incomingBrand) {
+      return NextResponse.json({ error: 'brandName cannot be empty.' }, { status: 400 });
+    }
+
     const existing = await db.siteConfig.findFirst();
     const site = existing
       ? await db.siteConfig.update({
           where: { id: existing.id },
           data: {
-            brandName: body.brandName ?? existing.brandName,
+            brandName: incomingBrand ?? existing.brandName,
             announcement: body.announcement ?? existing.announcement,
             announcementButton: body.announcementButton ?? existing.announcementButton
           }
         })
       : await db.siteConfig.create({
           data: {
-            brandName: body.brandName || '92 Glory0',
+            brandName: incomingBrand || '92 Glory0',
             announcement: body.announcement || '',
             announcementButton: body.announcementButton || 'Detail'
           }

@@ -19,14 +19,21 @@ export async function POST(req: NextRequest) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const name = String(body.name || '').trim();
+    const category = String(body.category || '').trim();
+    const image = String(body.image || '').trim();
+    if (!name || !category || !image) {
+      return NextResponse.json({ error: 'name, category and image are required.' }, { status: 400 });
+    }
+
     const game = await db.game.create({
       data: {
-        name: body.name,
-        category: body.category,
-        image: body.image,
+        name,
+        category,
+        image,
         provider: body.provider || null,
-        order: body.order ?? 0,
+        order: Number(body.order ?? 0),
         isActive: body.isActive ?? true
       }
     });

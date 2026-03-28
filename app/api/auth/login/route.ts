@@ -9,7 +9,7 @@ import { apiError } from '@/lib/api-error';
 export async function POST(req: NextRequest) {
   try {
     await ensureSeeded();
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { phone, email, identifier, password } = body;
     const loginIdentifier = normalizeIdentifier(identifier || email || phone).toLowerCase();
 

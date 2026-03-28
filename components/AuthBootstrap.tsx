@@ -13,20 +13,22 @@ export function AuthBootstrap() {
     fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (res.ok) return res.json();
+        if (res.status === 401 || res.status === 403) return { unauthorized: true };
+        return null;
+      })
       .then((data) => {
         if (data?.user) {
           setUser(data.user);
-        } else {
+        } else if (data?.unauthorized) {
           localStorage.removeItem('token');
           setUser(null);
           setToken(null);
         }
       })
       .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
-        setToken(null);
+        // Keep token on transient API/network errors.
       });
   }, [setToken, setUser]);
 

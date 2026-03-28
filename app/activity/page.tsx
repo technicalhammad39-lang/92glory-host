@@ -19,8 +19,9 @@ export default function ActivityPage() {
 
   useEffect(() => {
     fetch('/api/activities')
-      .then((res) => res.json())
-      .then((data) => setActivities(data.activities || []));
+      .then((res) => (res.ok ? res.json() : { activities: [] }))
+      .then((data) => setActivities(data.activities || []))
+      .catch(() => setActivities([]));
   }, []);
 
   const activeItems = activities.filter((a: any) => a.isActive !== false);

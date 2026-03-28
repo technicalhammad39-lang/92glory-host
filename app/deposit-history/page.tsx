@@ -11,8 +11,9 @@ export default function DepositHistoryPage() {
   useEffect(() => {
     if (!token) return;
     fetch('/api/transactions?type=DEPOSIT', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => res.json())
-      .then((data) => setTransactions(data.transactions || []));
+      .then((res) => (res.ok ? res.json() : { transactions: [] }))
+      .then((data) => setTransactions(data.transactions || []))
+      .catch(() => setTransactions([]));
   }, [token]);
 
   return (

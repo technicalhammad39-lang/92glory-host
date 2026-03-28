@@ -13,19 +13,21 @@ export default function AccountDetailPage() {
 
   useEffect(() => {
     fetch('/api/content-pages')
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : { pages: [] }))
       .then((data) => {
         const page = (data.pages || []).find((p: any) => p.slug === params.slug);
         if (page) setContent({ title: page.title, content: page.content });
-      });
+      })
+      .catch(() => setContent(null));
   }, [params.slug]);
 
   useEffect(() => {
     if (!token) return;
     if (params.slug === 'transaction' || params.slug === 'game-history') {
       fetch('/api/transactions', { headers: { Authorization: `Bearer ${token}` } })
-        .then((res) => res.json())
-        .then((data) => setTransactions(data.transactions || []));
+        .then((res) => (res.ok ? res.json() : { transactions: [] }))
+        .then((data) => setTransactions(data.transactions || []))
+        .catch(() => setTransactions([]));
     }
   }, [params.slug, token]);
 

@@ -116,8 +116,9 @@ export default function VIPPage() {
     fetch('/api/vip', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
     })
-      .then((res) => res.json())
-      .then((payload) => setData(payload));
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => setData(payload))
+      .catch(() => setData(null));
   }, [token]);
 
   const vipLevels = useMemo(() => buildVipLevels(data?.levels || []), [data?.levels]);

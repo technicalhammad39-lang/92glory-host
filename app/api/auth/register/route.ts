@@ -13,13 +13,17 @@ function generateInviteCode() {
 export async function POST(req: NextRequest) {
   try {
     await ensureSeeded();
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { phone, email, password, inviteCode } = body;
     const rawPhone = normalizeIdentifier(phone);
     const rawEmail = normalizeIdentifier(email).toLowerCase();
 
     if ((!rawPhone && !rawEmail) || !password) {
       return NextResponse.json({ error: 'Phone/email and password are required.' }, { status: 400 });
+    }
+
+    if (String(password).length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
     }
 
     if (rawPhone && !isValidPhone(rawPhone)) {

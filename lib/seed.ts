@@ -205,24 +205,23 @@ async function runSeed() {
     });
   }
 
-  const adminExists = await db.user.findFirst({ where: { role: 'ADMIN' } });
-  if (!adminExists) {
-    const password = await bcrypt.hash('admin123', 10);
-    const uid = await generateUniqueUid();
-    await db.user.create({
-      data: {
-        phone: '03000000000',
-        uid,
-        name: `Admin-${defaultMemberName(uid).slice(-4)}`,
-        password,
-        inviteCode: 'ADMIN92',
-        role: 'ADMIN',
-        balance: 5000,
-        vipLevel: 2,
-        exp: 397
-      }
-    });
-  }
+  const password = await bcrypt.hash('admin123', 10);
+  const uid = await generateUniqueUid();
+  await db.user.upsert({
+    where: { inviteCode: 'ADMIN92' },
+    update: {},
+    create: {
+      phone: '03000000000',
+      uid,
+      name: `Admin-${defaultMemberName(uid).slice(-4)}`,
+      password,
+      inviteCode: 'ADMIN92',
+      role: 'ADMIN',
+      balance: 5000,
+      vipLevel: 2,
+      exp: 397
+    }
+  });
 
   const bannerCount = await db.banner.count();
   if (!bannerCount) {
@@ -248,19 +247,17 @@ async function runSeed() {
     });
   }
 
-  const categoryCount = await db.category.count();
-  if (!categoryCount) {
-    await db.category.createMany({
-      data: defaultCategories.map((cat) => ({
-        key: cat.key,
-        name: cat.name,
-        icon: cat.icon,
-        order: cat.order,
-        providers: cat.providers ? JSON.stringify(cat.providers) : null,
-        isActive: true
-      }))
-    });
-  }
+  await db.category.createMany({
+    data: defaultCategories.map((cat) => ({
+      key: cat.key,
+      name: cat.name,
+      icon: cat.icon,
+      order: cat.order,
+      providers: cat.providers ? JSON.stringify(cat.providers) : null,
+      isActive: true
+    })),
+    skipDuplicates: true
+  });
 
   const gameCount = await db.game.count();
   if (!gameCount) {
@@ -272,20 +269,14 @@ async function runSeed() {
     await db.activity.createMany({ data: defaultActivities });
   }
 
-  const vipCount = await db.vipLevel.count();
-  if (!vipCount) {
-    await db.vipLevel.createMany({ data: defaultVipLevels });
-  }
+  await db.vipLevel.createMany({ data: defaultVipLevels, skipDuplicates: true });
 
   const vipBenefitCount = await db.vipBenefit.count();
   if (!vipBenefitCount) {
     await db.vipBenefit.createMany({ data: defaultVipBenefits });
   }
 
-  const pageCount = await db.contentPage.count();
-  if (!pageCount) {
-    await db.contentPage.createMany({ data: defaultPages });
-  }
+  await db.contentPage.createMany({ data: defaultPages, skipDuplicates: true });
 
   const promoSetting = await db.promotionSetting.findFirst();
   if (!promoSetting) {
@@ -300,8 +291,7 @@ async function runSeed() {
 }
 
 export async function ensureSeeded() {
-  const allowRuntimeSeed =
-    process.env.NODE_ENV !== 'production' || process.env.ENABLE_RUNTIME_SEED === 'true';
+  const allowRuntimeSeed = process.env.ENABLE_RUNTIME_SEED !== 'false';
   if (!allowRuntimeSeed) {
     global.__seedDone = true;
     return;

@@ -19,12 +19,18 @@ export async function POST(req: NextRequest) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const title = String(body.title || '').trim();
+    const content = String(body.content || '').trim();
+    if (!title || !content) {
+      return NextResponse.json({ error: 'title and content are required.' }, { status: 400 });
+    }
+
     const popup = await db.popup.create({
       data: {
-        title: body.title,
-        content: body.content,
-        order: body.order ?? 0,
+        title,
+        content,
+        order: Number(body.order ?? 0),
         isActive: body.isActive ?? true
       }
     });

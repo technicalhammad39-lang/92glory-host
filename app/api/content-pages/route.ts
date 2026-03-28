@@ -18,13 +18,20 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const slug = String(body.slug || '').trim();
+    const title = String(body.title || '').trim();
+    const content = String(body.content || '').trim();
+    if (!slug || !title || !content) {
+      return NextResponse.json({ error: 'slug, title and content are required.' }, { status: 400 });
+    }
+
     const page = await db.contentPage.create({
       data: {
-        slug: body.slug,
-        title: body.title,
-        content: body.content,
-        order: body.order ?? 0,
+        slug,
+        title,
+        content,
+        order: Number(body.order ?? 0),
         isActive: body.isActive ?? true
       }
     });

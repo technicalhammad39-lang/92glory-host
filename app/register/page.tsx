@@ -67,23 +67,26 @@ export default function RegisterPage() {
 
   const onCaptchaSuccess = async () => {
     setShowCaptcha(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Register failed');
+        return;
+      }
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || 'Register failed');
-      return;
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+      router.replace('/');
+    } catch {
+      setError('Unable to connect. Please try again.');
     }
-
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    router.replace('/');
   };
 
   return (

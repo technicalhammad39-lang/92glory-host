@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db, isDatabaseConfigured } from '@/lib/db';
+import { databaseConfigError, db, isDatabaseConfigured } from '@/lib/db';
 
 export async function GET() {
   try {
     if (!isDatabaseConfigured) {
       return NextResponse.json(
-        { ok: false, db: 'down', error: 'DATABASE_URL is missing or invalid for MySQL.' },
+        { ok: false, db: 'down', error: databaseConfigError || 'DATABASE_URL is missing or invalid for MySQL.' },
         { status: 503 }
       );
     }

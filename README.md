@@ -22,6 +22,10 @@ ADMIN_PANEL_PASSWORD="admin@786"
 # ENABLE_RUNTIME_SEED="true"
 ```
 
+Do not paste markdown/email wrappers into `DATABASE_URL`.
+Valid example with your Hostinger host:
+`mysql://u956471375_gloryuser:92Glory786@srv547.hstgr.io:3306/u956471375_92glorydb`
+
 ## Local Setup
 1. Install dependencies:
    - `pnpm install`
@@ -33,9 +37,10 @@ ADMIN_PANEL_PASSWORD="admin@786"
 
 ## Scripts
 - `pnpm db:migrate` -> apply committed migrations (`prisma migrate deploy`)
+- `pnpm db:prepare` -> deploy migrations, and auto-baseline on `P3005` (non-empty DB without migration history)
 - `pnpm db:migrate:dev` -> create/apply new migration in development
 - `pnpm db:status` -> migration status
-- `pnpm build:hostinger` -> migrate + build
+- `pnpm build:hostinger` -> db prepare + build
 
 ## Hostinger Git Deployment (Node.js App)
 1. In Hostinger Node.js app, connect this GitHub repo/branch.
@@ -45,12 +50,14 @@ ADMIN_PANEL_PASSWORD="admin@786"
    - `JWT_SECRET`
    - `ADMIN_PANEL_EMAIL`
    - `ADMIN_PANEL_PASSWORD`
-   - Optional: `ENABLE_RUNTIME_SEED=true` (only for first bootstrap)
+   - Optional: `ENABLE_RUNTIME_SEED=true` (recommended for first bootstrap)
 4. Build command:
    - `pnpm install --frozen-lockfile && pnpm build:hostinger`
 5. Start command:
    - `pnpm start`
 6. Redeploy after each push to GitHub.
+
+If your DB already had tables but no `_prisma_migrations`, `db:prepare` handles this automatically.
 
 ## Health Checks
 - `GET /api/health` -> DB connectivity status

@@ -61,29 +61,32 @@ export default function LoginPage() {
 
   const onCaptchaSuccess = async () => {
     setShowCaptcha(false);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password })
+      });
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password })
-    });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        return;
+      }
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || 'Login failed');
-      return;
+      if (remember) {
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ loginType, phone, email, password }));
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+      }
+
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+      router.replace('/');
+    } catch {
+      setError('Unable to connect. Please try again.');
     }
-
-    if (remember) {
-      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ loginType, phone, email, password }));
-    } else {
-      localStorage.removeItem(REMEMBER_KEY);
-    }
-
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    router.replace('/');
   };
 
   return (

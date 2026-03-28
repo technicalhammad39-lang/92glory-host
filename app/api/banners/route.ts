@@ -19,12 +19,15 @@ export async function POST(req: NextRequest) {
     const admin = await requireAdmin(req);
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const image = String(body.image || '').trim();
+    if (!image) return NextResponse.json({ error: 'Image is required.' }, { status: 400 });
+
     const banner = await db.banner.create({
       data: {
-        image: body.image,
+        image,
         link: body.link || null,
-        order: body.order ?? 0,
+        order: Number(body.order ?? 0),
         placement: body.placement || 'home',
         isActive: body.isActive ?? true
       }
