@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/api-helpers';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await req.json();
-  const existing = await db.transaction.findUnique({ where: { id: params.id } });
+  const existing = await db.transaction.findUnique({ where: { id: id } });
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const trx = await db.transaction.update({
-    where: { id: params.id },
+    where: { id: id },
     data: {
       status: body.status ?? undefined,
       amount: body.amount ?? undefined,

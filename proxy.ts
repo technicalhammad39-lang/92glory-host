@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_SESSION_COOKIE = 'admin_session';
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
@@ -24,3 +24,4 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/admin/:path*', '/admincts/:path*']
 };
+
