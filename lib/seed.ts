@@ -188,7 +188,14 @@ const defaultPages = [
   { slug: 'rebate-ratio', title: 'Rebate Ratio', content: 'Rebate ratio information.' }
 ];
 
-export async function ensureSeeded() {
+declare global {
+  // eslint-disable-next-line no-var
+  var __seedPromise: Promise<void> | undefined;
+  // eslint-disable-next-line no-var
+  var __seedDone: boolean | undefined;
+}
+
+async function runSeed() {
   const site = await db.siteConfig.findFirst();
   if (!site) {
     await db.siteConfig.create({
@@ -292,4 +299,18 @@ export async function ensureSeeded() {
       }
     });
   }
+}
+
+export async function ensureSeeded() {
+  if (global.__seedDone) return;
+  if (!global.__seedPromise) {
+    global.__seedPromise = runSeed()
+      .then(() => {
+        global.__seedDone = true;
+      })
+      .finally(() => {
+        global.__seedPromise = undefined;
+      });
+  }
+  await global.__seedPromise;
 }
