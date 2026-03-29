@@ -342,13 +342,14 @@ async function runSeed() {
 
 export async function ensureSeeded() {
   if (process.env.ENABLE_RUNTIME_SEED === 'false') {
-    const [hasCategories, hasGames, hasBanners] = await Promise.all([
+    const [hasCategories, hasGames, hasBanners, hasDepositChannels] = await Promise.all([
       db.category.count().then((n) => n > 0).catch(() => false),
       db.game.count().then((n) => n > 0).catch(() => false),
-      db.banner.count().then((n) => n > 0).catch(() => false)
+      db.banner.count().then((n) => n > 0).catch(() => false),
+      db.depositChannel.count().then((n) => n > 0).catch(() => false)
     ]);
 
-    if (hasCategories && hasGames && hasBanners) {
+    if (hasCategories && hasGames && hasBanners && hasDepositChannels) {
       global.__seedDone = true;
       return;
     }

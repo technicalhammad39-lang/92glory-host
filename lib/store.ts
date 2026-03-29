@@ -10,6 +10,7 @@ interface User {
   role: string;
   uid?: string;
   inviteCode?: string;
+  lastLoginAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

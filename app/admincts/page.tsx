@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/admin/overview')
+    fetch('/api/admin/overview', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => setStats(data));
   }, []);

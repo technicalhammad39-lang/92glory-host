@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SubmissionSuccessPopup } from '@/components/SubmissionSuccessPopup';
+import { useCallback } from 'react';
 
 const methods = [
   { id: 'EASYPAISA', name: 'EASYPAISA', image: '/easypaisa.png' },
@@ -39,6 +40,7 @@ export default function WithdrawPage() {
   const [savingAccount, setSavingAccount] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
   const [history, setHistory] = useState<WithdrawRequest[]>([]);
   const [accountNameInput, setAccountNameInput] = useState('');
@@ -55,7 +57,7 @@ export default function WithdrawPage() {
   const selected = methods.find((m) => m.id === selectedMethod) || methods[0];
   const selectedAccount = accounts.find((acc) => acc.method === selectedMethod) || null;
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!authToken) return;
     const [summaryRes, accountsRes, historyRes] = await Promise.all([
       fetch('/api/account/summary', {
@@ -84,7 +86,7 @@ export default function WithdrawPage() {
       const data = await historyRes.json();
       setHistory(data.requests || []);
     }
-  };
+  }, [authToken, setUser]);
 
   useEffect(() => {
     if (!authToken) {
@@ -92,7 +94,7 @@ export default function WithdrawPage() {
       return;
     }
     loadData().catch(() => null);
-  }, [authToken, router, setUser]);
+  }, [authToken, router, loadData]);
 
   useEffect(() => {
     if (selectedAccount) {
@@ -105,7 +107,12 @@ export default function WithdrawPage() {
   }, [selectedAccount]);
 
   const saveAccount = async () => {
-    if (!authToken || !accountNameInput.trim() || !accountNumberInput.trim() || savingAccount) return;
+    if (!authToken || savingAccount) return;
+    if (!accountNameInput.trim() || !accountNumberInput.trim()) {
+      setErrorMsg('Please add account name and account number.');
+      return;
+    }
+    setErrorMsg('');
     setSavingAccount(true);
     try {
       const res = await fetch('/api/withdraw-accounts', {
@@ -121,7 +128,11 @@ export default function WithdrawPage() {
           title: selected.name
         })
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data?.error || 'Failed to save account.');
+        return;
+      }
       await loadData();
     } finally {
       setSavingAccount(false);
@@ -129,9 +140,17 @@ export default function WithdrawPage() {
   };
 
   const submitWithdraw = async () => {
-    if (!authToken || !selectedAccount || isSubmitting) return;
+    if (!authToken || isSubmitting) return;
+    if (!selectedAccount) {
+      setErrorMsg('Please add and select a withdraw account first.');
+      return;
+    }
     const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) return;
+    if (!Number.isFinite(value) || value <= 0) {
+      setErrorMsg('Please enter a valid withdraw amount.');
+      return;
+    }
+    setErrorMsg('');
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/withdraw-requests', {
@@ -145,7 +164,11 @@ export default function WithdrawPage() {
           amount: value
         })
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data?.error || 'Failed to submit withdraw request.');
+        return;
+      }
       setAmount('');
       setShowSuccess(true);
       setTimeout(() => {
@@ -254,6 +277,7 @@ export default function WithdrawPage() {
             >
               {savingAccount ? 'Saving...' : 'Save Account'}
             </button>
+            {errorMsg && <p className="text-xs text-red-500">{errorMsg}</p>}
           </div>
         ) : (
           <div className="bg-white rounded-xl p-4 shadow-sm border border-[#EEF1F8]">
@@ -299,6 +323,7 @@ export default function WithdrawPage() {
             >
               {isSubmitting ? 'Submitting...' : 'Submit Withdraw'}
             </button>
+            {errorMsg && <p className="text-xs text-red-500 mt-2">{errorMsg}</p>}
           </div>
         </div>
       )}
@@ -376,4 +401,3 @@ function HistoryRow({
     </div>
   );
 }
-

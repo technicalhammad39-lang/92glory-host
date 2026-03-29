@@ -18,7 +18,19 @@ export function proxy(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  const isApi = pathname.startsWith('/api/');
+  const isNextAsset = pathname.startsWith('/_next/');
+  const isStaticFile = /\.[a-zA-Z0-9]+$/.test(pathname);
+
+  if (!isApi && !isNextAsset && !isStaticFile) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
+  return response;
 }
 
 export const config = {

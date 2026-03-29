@@ -32,7 +32,7 @@ export default function AdminDepositChannelsPage() {
   const [saving, setSaving] = useState(false);
 
   const loadChannels = useCallback(() => {
-    fetch('/api/deposit-channels')
+    fetch('/api/deposit-channels', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : { channels: [] }))
       .then((data) => setChannels(data.channels || []))
       .catch(() => setChannels([]));
@@ -225,4 +225,3 @@ export default function AdminDepositChannelsPage() {
     </div>
   );
 }
-

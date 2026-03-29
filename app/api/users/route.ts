@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
         balance: true,
         vipLevel: true,
         role: true,
+        lastLoginAt: true,
         createdAt: true,
         updatedAt: true
       }

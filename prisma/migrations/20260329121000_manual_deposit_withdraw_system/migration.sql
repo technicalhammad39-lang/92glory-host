@@ -15,6 +15,15 @@ CREATE TABLE `DepositChannel` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateIndex
+CREATE INDEX `Transaction_userId_type_status_createdAt_idx` ON `Transaction`(`userId`, `type`, `status`, `createdAt`);
+
+-- CreateIndex
+CREATE INDEX `Transaction_status_type_createdAt_idx` ON `Transaction`(`status`, `type`, `createdAt`);
+
+-- AddColumn
+ALTER TABLE `User` ADD COLUMN `lastLoginAt` DATETIME(3) NULL;
+
 -- CreateTable
 CREATE TABLE `DepositRequest` (
     `id` VARCHAR(191) NOT NULL,

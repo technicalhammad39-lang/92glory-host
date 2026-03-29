@@ -19,6 +19,7 @@ model User {
   vipLevel         Int                @default(0)
   exp              Int                @default(0)
   role             String             @default("USER") // USER or ADMIN
+  lastLoginAt      DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   transactions     Transaction[]
@@ -41,6 +42,9 @@ model Transaction {
   createdAt       DateTime         @default(now())
   depositRequest  DepositRequest?
   withdrawRequest WithdrawRequest?
+
+  @@index([userId, type, status, createdAt])
+  @@index([status, type, createdAt])
 }
 
 model DepositChannel {

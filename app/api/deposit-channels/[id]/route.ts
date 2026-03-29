@@ -78,20 +78,27 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     const existing = await db.depositChannel.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Channel not found.' }, { status: 404 });
 
-    await db.depositChannel.delete({ where: { id } });
+    const linkedRequests = await db.depositRequest.count({ where: { channelId: id } });
+    if (linkedRequests > 0) {
+      await db.depositChannel.update({
+        where: { id },
+        data: { isActive: false }
+      });
+    } else {
+      await db.depositChannel.delete({ where: { id } });
+    }
     await db.adminActionLog.create({
       data: {
         adminId: admin.id,
         action: 'DELETE_DEPOSIT_CHANNEL',
         targetType: 'DepositChannel',
         targetId: id,
-        details: JSON.stringify({ method: existing.method, title: existing.title })
+        details: JSON.stringify({ method: existing.method, title: existing.title, softDisabled: linkedRequests > 0 })
       }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, softDisabled: linkedRequests > 0 });
   } catch (error) {
     return apiError('deposit-channels.delete', error);
   }
 }
-

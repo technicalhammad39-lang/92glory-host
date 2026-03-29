@@ -3,6 +3,7 @@ import { Nunito_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthBootstrap } from '@/components/AuthBootstrap';
 import { SupportWidget } from '@/components/SupportWidget';
+import { ChunkErrorRecovery } from '@/components/ChunkErrorRecovery';
 
 const nunitoSans = Nunito_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body className={`${nunitoSans.className} bg-gray-100 min-h-screen flex justify-center`} suppressHydrationWarning>
         <div className="w-full max-w-[450px] bg-white min-h-screen shadow-xl relative flex flex-col overflow-x-hidden">
           <AuthBootstrap />
+          <ChunkErrorRecovery />
           {children}
           <SupportWidget />
         </div>

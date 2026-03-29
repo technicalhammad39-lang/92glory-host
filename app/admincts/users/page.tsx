@@ -22,7 +22,7 @@ export default function AdminUsers() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    fetch('/api/users')
+    fetch('/api/users', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => setUsers(data.users || []));
   }, []);
@@ -153,4 +153,3 @@ export default function AdminUsers() {
     </div>
   );
 }
-

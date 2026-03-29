@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SubmissionSuccessPopup } from '@/components/SubmissionSuccessPopup';
+import { useCallback } from 'react';
 
 type Channel = {
   id: string;
@@ -30,6 +31,7 @@ export default function DepositPage() {
   const [step, setStep] = useState<'SELECT' | 'CONFIRM'>('SELECT');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const { token, user, setUser } = useAuthStore();
   const router = useRouter();
 
@@ -39,7 +41,7 @@ export default function DepositPage() {
     return null;
   }, [token]);
 
-  const loadInitial = async () => {
+  const loadInitial = useCallback(async () => {
     if (!authToken) return;
     const [channelRes, summaryRes] = await Promise.all([
       fetch('/api/deposit-channels', { cache: 'no-store' }),
@@ -53,14 +55,16 @@ export default function DepositPage() {
       const channelData = await channelRes.json();
       const list = (channelData.channels || []).slice(0, 3);
       setChannels(list);
-      if (!selectedChannelId && list[0]) setSelectedChannelId(list[0].id);
+      if (list[0]) {
+        setSelectedChannelId((prev) => prev || list[0].id);
+      }
     }
 
     if (summaryRes.ok) {
       const summaryData = await summaryRes.json();
       if (summaryData?.user) setUser(summaryData.user);
     }
-  };
+  }, [authToken, setUser]);
 
   useEffect(() => {
     if (!authToken) {
@@ -68,7 +72,7 @@ export default function DepositPage() {
       return;
     }
     loadInitial().catch(() => null);
-  }, [authToken, router, setUser]);
+  }, [authToken, router, loadInitial]);
 
   const amountValue = customAmount
     ? Number(customAmount)
@@ -77,14 +81,22 @@ export default function DepositPage() {
   const selectedChannel = channels.find((channel) => channel.id === selectedChannelId) || null;
 
   const continueToConfirm = () => {
-    if (!selectedChannel) return;
-    if (!Number.isFinite(amountValue) || amountValue <= 0) return;
+    if (!selectedChannel) {
+      setErrorMsg('Please select a payment channel first.');
+      return;
+    }
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      setErrorMsg('Please enter a valid deposit amount.');
+      return;
+    }
+    setErrorMsg('');
     setStep('CONFIRM');
   };
 
   const submitDepositRequest = async () => {
     if (!authToken || !selectedChannel || !Number.isFinite(amountValue) || amountValue <= 0 || isSubmitting) return;
     setIsSubmitting(true);
+    setErrorMsg('');
     try {
       const res = await fetch('/api/deposit-requests', {
         method: 'POST',
@@ -97,7 +109,11 @@ export default function DepositPage() {
           amount: amountValue
         })
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data?.error || 'Failed to submit deposit request.');
+        return;
+      }
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -167,6 +183,11 @@ export default function DepositPage() {
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#EEF1F8]">
               <h3 className="text-sm font-bold mb-3">Select payment channel</h3>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{channels.map(channelCard)}</div>
+              {channels.length === 0 && (
+                <p className="text-xs text-red-500 mt-3">
+                  No active deposit channels are configured. Please contact support or admin.
+                </p>
+              )}
             </div>
           </div>
 
@@ -201,6 +222,7 @@ export default function DepositPage() {
           </div>
 
           <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[450px] bg-white p-4 border-t border-gray-100 z-50">
+            {errorMsg && <p className="text-xs text-red-500 mb-2">{errorMsg}</p>}
             <button
               onClick={continueToConfirm}
               className="w-full h-12 rounded-full bg-gradient-to-r from-[#6D8CF6] to-[#E284EA] text-white text-lg font-bold flex items-center justify-center gap-2"
@@ -242,7 +264,9 @@ export default function DepositPage() {
             </div>
           </div>
 
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[450px] bg-white p-4 border-t border-gray-100 z-50 flex gap-2">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[450px] bg-white p-4 border-t border-gray-100 z-50">
+            {errorMsg && <p className="text-xs text-red-500 mb-2">{errorMsg}</p>}
+            <div className="flex gap-2">
             <button onClick={() => setStep('SELECT')} className="flex-1 h-12 rounded-full border border-[#D58AF2] text-[#C26DE9] font-bold">
               Back
             </button>
@@ -253,10 +277,10 @@ export default function DepositPage() {
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
+            </div>
           </div>
         </>
       )}
     </div>
   );
 }
-

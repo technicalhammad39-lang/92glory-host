@@ -31,21 +31,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
+    const refreshedUser = await db.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
+
     const token = signToken({ id: user.id, role: user.role });
     return NextResponse.json({
       token,
       user: {
-        id: user.id,
-        phone: user.phone,
-        email: user.email,
-        uid: user.uid,
-        name: user.name,
-        balance: user.balance,
-        vipLevel: user.vipLevel,
-        role: user.role,
-        inviteCode: user.inviteCode,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        id: refreshedUser.id,
+        phone: refreshedUser.phone,
+        email: refreshedUser.email,
+        uid: refreshedUser.uid,
+        name: refreshedUser.name,
+        balance: refreshedUser.balance,
+        vipLevel: refreshedUser.vipLevel,
+        role: refreshedUser.role,
+        inviteCode: refreshedUser.inviteCode,
+        lastLoginAt: refreshedUser.lastLoginAt,
+        createdAt: refreshedUser.createdAt,
+        updatedAt: refreshedUser.updatedAt
       }
     });
   } catch (error) {

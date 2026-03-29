@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
     const user = await getAuthUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const url = new URL(req.url);
+    const withLatest = url.searchParams.get('withLatest') === '1';
     const todayStart = startOfToday();
 
     const [
@@ -29,9 +31,7 @@ export async function GET(req: NextRequest) {
       totalFlow,
       todayBonus,
       totalBonus,
-      latestTransactions,
-      latestDeposit,
-      latestWithdraw
+      transactionCount
     ] = await Promise.all([
       db.transaction.aggregate({
         _sum: { amount: true },
@@ -62,44 +62,50 @@ export async function GET(req: NextRequest) {
         _sum: { amount: true },
         where: { userId: user.id, status: COMPLETED, type: { in: BONUS_TYPES } }
       }),
-      db.transaction.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        take: 15,
-        select: {
-          id: true,
-          type: true,
-          amount: true,
-          status: true,
-          meta: true,
-          createdAt: true
-        }
-      }),
-      db.transaction.findFirst({
-        where: { userId: user.id, type: 'DEPOSIT' },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          type: true,
-          amount: true,
-          status: true,
-          meta: true,
-          createdAt: true
-        }
-      }),
-      db.transaction.findFirst({
-        where: { userId: user.id, type: 'WITHDRAW' },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          type: true,
-          amount: true,
-          status: true,
-          meta: true,
-          createdAt: true
-        }
-      })
+      db.transaction.count({ where: { userId: user.id } })
     ]);
+
+    const [latestTransactions, latestDeposit, latestWithdraw] = withLatest
+      ? await Promise.all([
+          db.transaction.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: 'desc' },
+            take: 15,
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              status: true,
+              meta: true,
+              createdAt: true
+            }
+          }),
+          db.transaction.findFirst({
+            where: { userId: user.id, type: 'DEPOSIT' },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              status: true,
+              meta: true,
+              createdAt: true
+            }
+          }),
+          db.transaction.findFirst({
+            where: { userId: user.id, type: 'WITHDRAW' },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              status: true,
+              meta: true,
+              createdAt: true
+            }
+          })
+        ])
+      : [[], null, null];
 
     return NextResponse.json({
       user: {
@@ -112,6 +118,7 @@ export async function GET(req: NextRequest) {
         vipLevel: user.vipLevel,
         role: user.role,
         inviteCode: user.inviteCode,
+        lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       },
@@ -122,7 +129,7 @@ export async function GET(req: NextRequest) {
         totalWithdrawAmount: toAmount(withdrawTotal._sum.amount),
         todayBonus: toAmount(todayBonus._sum.amount),
         totalBonus: toAmount(totalBonus._sum.amount),
-        transactionsCount: latestTransactions.length
+        transactionsCount: transactionCount
       },
       latest: {
         deposit: latestDeposit,

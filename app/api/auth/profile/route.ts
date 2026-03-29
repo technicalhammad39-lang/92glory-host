@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
         inviteCode: user.inviteCode,
         balance: user.balance,
         vipLevel: user.vipLevel,
+        lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       }
@@ -59,6 +60,7 @@ export async function PUT(req: NextRequest) {
         inviteCode: updated.inviteCode,
         balance: updated.balance,
         vipLevel: updated.vipLevel,
+        lastLoginAt: updated.lastLoginAt,
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt
       }

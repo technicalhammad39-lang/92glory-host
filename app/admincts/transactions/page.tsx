@@ -45,9 +45,9 @@ export default function AdminTransactions() {
 
   const load = useCallback(() => {
     Promise.all([
-      fetch('/api/deposit-requests').then((res) => (res.ok ? res.json() : { requests: [] })),
-      fetch('/api/withdraw-requests').then((res) => (res.ok ? res.json() : { requests: [] })),
-      fetch('/api/transactions?limit=120').then((res) => (res.ok ? res.json() : { transactions: [] }))
+      fetch('/api/deposit-requests', { cache: 'no-store' }).then((res) => (res.ok ? res.json() : { requests: [] })),
+      fetch('/api/withdraw-requests', { cache: 'no-store' }).then((res) => (res.ok ? res.json() : { requests: [] })),
+      fetch('/api/transactions?limit=120', { cache: 'no-store' }).then((res) => (res.ok ? res.json() : { transactions: [] }))
     ])
       .then(([depositData, withdrawData, walletData]) => {
         setDepositRequests(depositData.requests || []);
@@ -262,4 +262,3 @@ function TabButton({
     </button>
   );
 }
-

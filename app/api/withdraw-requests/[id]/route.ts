@@ -41,10 +41,6 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Only pending requests can be updated.' }, { status: 400 });
     }
 
-    if (decision === 'approve' && request.user.balance < request.amount) {
-      return NextResponse.json({ error: 'User balance is not enough to approve this withdrawal.' }, { status: 400 });
-    }
-
     const reviewedAt = new Date();
 
     const result = await db.$transaction(async (tx) => {
@@ -76,10 +72,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       }
 
       if (decision === 'approve') {
-        await tx.user.update({
-          where: { id: request.userId },
+        const debit = await tx.user.updateMany({
+          where: { id: request.userId, balance: { gte: request.amount } },
           data: { balance: { decrement: request.amount } }
         });
+        if (debit.count === 0) {
+          throw new Error('INSUFFICIENT_BALANCE');
+        }
       }
 
       await tx.adminActionLog.create({
@@ -102,7 +101,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 
     return NextResponse.json({ request: result });
   } catch (error) {
+    if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
+      return NextResponse.json({ error: 'User balance is not enough to approve this withdrawal.' }, { status: 400 });
+    }
     return apiError('withdraw-requests.put', error);
   }
 }
-

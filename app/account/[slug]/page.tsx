@@ -35,6 +35,7 @@ export default function AccountDetailPage() {
       router.replace('/login');
       return;
     }
+    if (isHistorySlug) return;
     fetch('/api/content-pages')
       .then((res) => (res.ok ? res.json() : { pages: [] }))
       .then((data) => {
@@ -42,7 +43,7 @@ export default function AccountDetailPage() {
         if (page) setContent({ title: page.title, content: page.content });
       })
       .catch(() => setContent(null));
-  }, [params.slug, authToken, router]);
+  }, [params.slug, authToken, router, isHistorySlug]);
 
   useEffect(() => {
     if (!authToken || !isHistorySlug) return;
@@ -155,4 +156,3 @@ function HistoryRow({
     </div>
   );
 }
-

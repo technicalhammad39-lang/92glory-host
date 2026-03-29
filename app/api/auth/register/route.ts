@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
         vipLevel: user.vipLevel,
         role: user.role,
         inviteCode: user.inviteCode,
+        lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       }
