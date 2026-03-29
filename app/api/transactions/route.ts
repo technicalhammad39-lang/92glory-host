@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/api-helpers';
 import { apiError } from '@/lib/api-error';
 
-const ALLOWED_TRANSACTION_TYPES = new Set(['DEPOSIT', 'WITHDRAW', 'GAME_WIN', 'GAME_LOSS', 'BONUS', 'COMMISSION']);
+const ALLOWED_TRANSACTION_TYPES = new Set(['DEPOSIT', 'WITHDRAW', 'GAME_WIN', 'GAME_LOSS', 'BONUS', 'COMMISSION', 'MANUAL_ADJUST']);
 const ALLOWED_TRANSACTION_STATUSES = new Set(['PENDING', 'COMPLETED', 'FAILED']);
 
 export async function GET(req: NextRequest) {

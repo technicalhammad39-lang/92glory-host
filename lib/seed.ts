@@ -164,6 +164,39 @@ const defaultVipBenefits = [
   }
 ];
 
+const defaultDepositChannels = [
+  {
+    method: 'JAZZCASH',
+    title: 'JazzCash Main',
+    logo: '/jazzcash.png',
+    accountNumber: '03001234567',
+    accountName: '92 Glory Payments',
+    instructions: 'Transfer to this JazzCash account then submit your request for manual approval.',
+    sortOrder: 1,
+    isActive: true
+  },
+  {
+    method: 'EASYPAISA',
+    title: 'EasyPaisa Main',
+    logo: '/easypaisa.png',
+    accountNumber: '03111234567',
+    accountName: '92 Glory Payments',
+    instructions: 'Send payment through EasyPaisa and submit for manual confirmation.',
+    sortOrder: 2,
+    isActive: true
+  },
+  {
+    method: 'USDT',
+    title: 'USDT TRC20',
+    logo: '/usdt.png',
+    accountNumber: 'TRC20-ADDRESS-PLACEHOLDER',
+    accountName: '92 Glory USDT Wallet',
+    instructions: 'Send USDT (TRC20) and submit your transaction request. Approval is manual.',
+    sortOrder: 3,
+    isActive: true
+  }
+];
+
 const defaultPages = [
   { slug: 'game-history', title: 'Game History', content: 'Your game history will appear here.' },
   { slug: 'transaction', title: 'Transaction', content: 'Your transaction history will appear here.' },
@@ -289,6 +322,11 @@ async function runSeed() {
   }
 
   await db.contentPage.createMany({ data: defaultPages, skipDuplicates: true });
+
+  const channelCount = await db.depositChannel.count();
+  if (!channelCount) {
+    await db.depositChannel.createMany({ data: defaultDepositChannels });
+  }
 
   const promoSetting = await db.promotionSetting.findFirst();
   if (!promoSetting) {

@@ -158,8 +158,8 @@ export default function AccountPage() {
       <div className="mx-4 mt-4 grid grid-cols-2 gap-2.5">
         <HistoryCard href="/account/game-history" icon={History} iconClass="text-[#5B9BFF]" bgClass="bg-[#EAF2FF]" title="Game History" subtitle="My game history" />
         <HistoryCard href="/account/transaction" icon={FileText} iconClass="text-[#43C98E]" bgClass="bg-[#E4FAEF]" title="Transaction" subtitle="My transaction history" />
-        <HistoryCard href="/deposit" icon={ArrowUpCircle} iconClass="text-[#FF6A6A]" bgClass="bg-[#FFE8E8]" title="Deposit" subtitle="My deposit history" />
-        <HistoryCard href="/withdraw" icon={ArrowDownCircle} iconClass="text-[#F5A136]" bgClass="bg-[#FFF1DE]" title="Withdraw" subtitle="My withdraw history" />
+        <HistoryCard href="/deposit-history" icon={ArrowUpCircle} iconClass="text-[#FF6A6A]" bgClass="bg-[#FFE8E8]" title="Deposit" subtitle="My deposit history" />
+        <HistoryCard href="/withdraw-history" icon={ArrowDownCircle} iconClass="text-[#F5A136]" bgClass="bg-[#FFF1DE]" title="Withdraw" subtitle="My withdraw history" />
       </div>
 
       <div className="mx-4 mt-4">

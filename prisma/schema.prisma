@@ -8,34 +8,126 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  name         String?
-  phone        String?       @unique
-  email        String?       @unique
-  uid          String?       @unique
-  inviteCode   String        @unique
-  password     String
-  balance      Float         @default(0.0)
-  vipLevel     Int           @default(0)
-  exp          Int           @default(0)
-  role         String        @default("USER") // USER or ADMIN
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  transactions Transaction[]
-  downlines    User[]        @relation("UserToDownlines")
-  uplineId     String?
-  upline       User?         @relation("UserToDownlines", fields: [uplineId], references: [id])
+  id               String             @id @default(cuid())
+  name             String?
+  phone            String?            @unique
+  email            String?            @unique
+  uid              String?            @unique
+  inviteCode       String             @unique
+  password         String
+  balance          Float              @default(0.0)
+  vipLevel         Int                @default(0)
+  exp              Int                @default(0)
+  role             String             @default("USER") // USER or ADMIN
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  transactions     Transaction[]
+  depositRequests  DepositRequest[]
+  withdrawRequests WithdrawRequest[]
+  withdrawAccounts WithdrawAccount[]
+  downlines        User[]             @relation("UserToDownlines")
+  uplineId         String?
+  upline           User?              @relation("UserToDownlines", fields: [uplineId], references: [id])
 }
 
 model Transaction {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS, BONUS
-  amount    Float
-  status    String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
-  meta      String?  @db.Text
-  createdAt DateTime @default(now())
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  type            String // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS, BONUS, MANUAL_ADJUST
+  amount          Float
+  status          String           @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  meta            String?          @db.Text
+  createdAt       DateTime         @default(now())
+  depositRequest  DepositRequest?
+  withdrawRequest WithdrawRequest?
+}
+
+model DepositChannel {
+  id              String           @id @default(cuid())
+  method          String
+  title           String
+  logo            String
+  accountNumber   String
+  accountName     String
+  instructions    String?          @db.Text
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  depositRequests DepositRequest[]
+}
+
+model DepositRequest {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  channelId     String
+  channel       DepositChannel  @relation(fields: [channelId], references: [id])
+  amount        Float
+  status        String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  note          String?         @db.Text
+  adminNote     String?         @db.Text
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  transactionId String?         @unique
+  transaction   Transaction?    @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId, status])
+  @@index([channelId, status])
+}
+
+model WithdrawAccount {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  method          String
+  accountNumber   String
+  accountName     String
+  title           String?
+  isDefault       Boolean           @default(false)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  withdrawRequests WithdrawRequest[]
+
+  @@unique([userId, method])
+  @@index([userId, isActive])
+}
+
+model WithdrawRequest {
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id])
+  withdrawAccountId String
+  withdrawAccount   WithdrawAccount  @relation(fields: [withdrawAccountId], references: [id])
+  amount            Float
+  status            String           @default("PENDING") // PENDING, APPROVED, REJECTED
+  note              String?          @db.Text
+  adminNote         String?          @db.Text
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  transactionId     String?          @unique
+  transaction       Transaction?     @relation(fields: [transactionId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([userId, status])
+  @@index([withdrawAccountId, status])
+}
+
+model AdminActionLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String?
+  details    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([adminId, createdAt])
 }
 
 model Banner {

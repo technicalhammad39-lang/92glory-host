@@ -1,25 +1,25 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, Wallet, ArrowDownRight, ArrowUpRight, Gamepad2 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { Users, Wallet, ArrowDownRight, ArrowUpRight, Gamepad2, Clock } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { token } = useAuthStore();
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/admin/overview', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('/api/admin/overview')
       .then((res) => res.json())
       .then((data) => setStats(data));
-  }, [token]);
+  }, []);
 
   const cards = [
     { name: 'Total Users', value: stats?.users || 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
     { name: 'Total Deposits', value: stats?.deposits || 0, icon: Wallet, color: 'text-green-500', bg: 'bg-green-50' },
     { name: 'Total Withdrawals', value: stats?.withdrawals || 0, icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50' },
     { name: 'Total Bets', value: stats?.bets || 0, icon: ArrowUpRight, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { name: 'Active Games', value: stats?.games || 0, icon: Gamepad2, color: 'text-orange-500', bg: 'bg-orange-50' }
+    { name: 'Active Games', value: stats?.games || 0, icon: Gamepad2, color: 'text-orange-500', bg: 'bg-orange-50' },
+    { name: 'Pending Deposits', value: stats?.pendingDeposits || 0, icon: Clock, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+    { name: 'Pending Withdraws', value: stats?.pendingWithdraws || 0, icon: Clock, color: 'text-pink-500', bg: 'bg-pink-50' }
   ];
 
   return (

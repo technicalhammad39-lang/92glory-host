@@ -6,18 +6,21 @@ import { useAuthStore } from '@/lib/store';
 import { Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-type TransactionItem = {
+type DepositRequest = {
   id: string;
-  type: string;
   amount: number;
   status: string;
-  metaData?: { method?: string };
   createdAt: string;
+  adminNote?: string | null;
+  channel: {
+    method: string;
+    title: string;
+  };
 };
 
 export default function DepositHistoryPage() {
   const { token } = useAuthStore();
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [requests, setRequests] = useState<DepositRequest[]>([]);
   const router = useRouter();
 
   const authToken = useMemo(() => {
@@ -31,13 +34,13 @@ export default function DepositHistoryPage() {
       router.replace('/login');
       return;
     }
-    fetch('/api/transactions?type=DEPOSIT', {
+    fetch('/api/deposit-requests', {
       headers: { Authorization: `Bearer ${authToken}` },
       cache: 'no-store'
     })
-      .then((res) => (res.ok ? res.json() : { transactions: [] }))
-      .then((data) => setTransactions(data.transactions || []))
-      .catch(() => setTransactions([]));
+      .then((res) => (res.ok ? res.json() : { requests: [] }))
+      .then((data) => setRequests(data.requests || []))
+      .catch(() => setRequests([]));
   }, [authToken, router]);
 
   const formatDate = (raw: string) => {
@@ -47,9 +50,9 @@ export default function DepositHistoryPage() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
-  const orderNo = (trx: TransactionItem) => {
-    const datePart = formatDate(trx.createdAt).replace(/[-:\s]/g, '').slice(0, 14);
-    return `DP${datePart}${trx.id.slice(-12).toUpperCase()}`;
+  const orderNo = (item: DepositRequest) => {
+    const datePart = formatDate(item.createdAt).replace(/[-:\s]/g, '').slice(0, 14);
+    return `DP${datePart}${item.id.slice(-12).toUpperCase()}`;
   };
 
   const copyValue = async (value: string) => {
@@ -64,27 +67,34 @@ export default function DepositHistoryPage() {
     <div className="min-h-screen bg-gray-50 pb-6">
       <Header showBack title="Deposit History" />
       <div className="p-4 space-y-3">
-        {transactions.map((trx) => {
-          const order = orderNo(trx);
+        {requests.map((item) => {
+          const order = orderNo(item);
           return (
-            <div key={trx.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
+            <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
               <div className="flex justify-between items-center mb-4">
                 <div className="bg-blue-500 text-white text-[10px] px-3 py-1 rounded-md font-bold">Deposit</div>
-                <span className={`text-[10px] font-bold ${trx.status === 'COMPLETED' ? 'text-teal-500' : trx.status === 'FAILED' ? 'text-red-500' : 'text-amber-500'}`}>{trx.status}</span>
+                <span
+                  className={`text-[10px] font-bold ${
+                    item.status === 'APPROVED' ? 'text-teal-500' : item.status === 'REJECTED' ? 'text-red-500' : 'text-amber-500'
+                  }`}
+                >
+                  {item.status}
+                </span>
               </div>
               <div className="space-y-3">
-                <HistoryRow label="Balance" value={`Rs${Number(trx.amount || 0).toFixed(2)}`} valueColor="text-blue-500" />
-                <HistoryRow label="Type" value={(trx.metaData?.method || 'DEPOSIT').toUpperCase()} />
-                <HistoryRow label="Time" value={formatDate(trx.createdAt)} />
+                <HistoryRow label="Balance" value={`Rs${Number(item.amount || 0).toFixed(2)}`} valueColor="text-blue-500" />
+                <HistoryRow label="Type" value={item.channel?.method || item.channel?.title || 'N/A'} />
+                <HistoryRow label="Time" value={formatDate(item.createdAt)} />
                 <HistoryRow label="Order number" value={order} showCopy onCopy={() => copyValue(order)} />
               </div>
+              {item.adminNote && <p className="text-[10px] text-gray-400 mt-3">Note: {item.adminNote}</p>}
             </div>
           );
         })}
 
-        {transactions.length === 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
-            <p className="text-sm text-gray-500 text-center">No deposit history found.</p>
+        {requests.length === 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-50 text-center">
+            <p className="text-sm text-gray-500">No deposit history found.</p>
           </div>
         )}
       </div>

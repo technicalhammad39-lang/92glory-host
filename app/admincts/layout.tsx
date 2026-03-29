@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   Wallet,
+  CreditCard,
   FileText,
   Menu,
   X,
@@ -32,6 +33,7 @@ const adminNavItems = [
   { name: 'Promotion', icon: Percent, path: '/admincts/promotion' },
   { name: 'Branding', icon: Settings, path: '/admincts/branding' },
   { name: 'Users', icon: Users, path: '/admincts/users' },
+  { name: 'Deposit Channels', icon: CreditCard, path: '/admincts/deposit-channels' },
   { name: 'Transactions', icon: Wallet, path: '/admincts/transactions' },
   { name: 'Content Pages', icon: FileText, path: '/admincts/content-pages' }
 ];

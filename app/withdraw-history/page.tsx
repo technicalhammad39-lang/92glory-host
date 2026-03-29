@@ -6,18 +6,21 @@ import { useAuthStore } from '@/lib/store';
 import { Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-type TransactionItem = {
+type WithdrawRequest = {
   id: string;
-  type: string;
   amount: number;
   status: string;
-  metaData?: { method?: string };
   createdAt: string;
+  adminNote?: string | null;
+  withdrawAccount: {
+    method: string;
+    accountNumber: string;
+  };
 };
 
 export default function WithdrawHistoryPage() {
   const { token } = useAuthStore();
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [requests, setRequests] = useState<WithdrawRequest[]>([]);
   const router = useRouter();
 
   const authToken = useMemo(() => {
@@ -31,13 +34,13 @@ export default function WithdrawHistoryPage() {
       router.replace('/login');
       return;
     }
-    fetch('/api/transactions?type=WITHDRAW', {
+    fetch('/api/withdraw-requests', {
       headers: { Authorization: `Bearer ${authToken}` },
       cache: 'no-store'
     })
-      .then((res) => (res.ok ? res.json() : { transactions: [] }))
-      .then((data) => setTransactions(data.transactions || []))
-      .catch(() => setTransactions([]));
+      .then((res) => (res.ok ? res.json() : { requests: [] }))
+      .then((data) => setRequests(data.requests || []))
+      .catch(() => setRequests([]));
   }, [authToken, router]);
 
   const formatDate = (raw: string) => {
@@ -47,9 +50,9 @@ export default function WithdrawHistoryPage() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
-  const orderNo = (trx: TransactionItem) => {
-    const datePart = formatDate(trx.createdAt).replace(/[-:\s]/g, '').slice(0, 14);
-    return `WD${datePart}${trx.id.slice(-12).toUpperCase()}`;
+  const orderNo = (item: WithdrawRequest) => {
+    const datePart = formatDate(item.createdAt).replace(/[-:\s]/g, '').slice(0, 14);
+    return `WD${datePart}${item.id.slice(-12).toUpperCase()}`;
   };
 
   const copyValue = async (value: string) => {
@@ -64,27 +67,34 @@ export default function WithdrawHistoryPage() {
     <div className="min-h-screen bg-gray-50 pb-6">
       <Header showBack title="Withdraw History" />
       <div className="p-4 space-y-3">
-        {transactions.map((trx) => {
-          const order = orderNo(trx);
+        {requests.map((item) => {
+          const order = orderNo(item);
           return (
-            <div key={trx.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
+            <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
               <div className="flex justify-between items-center mb-4">
                 <div className="bg-red-500 text-white text-[10px] px-3 py-1 rounded-md font-bold">Withdraw</div>
-                <span className={`text-[10px] font-bold ${trx.status === 'COMPLETED' ? 'text-teal-500' : trx.status === 'FAILED' ? 'text-red-500' : 'text-amber-500'}`}>{trx.status}</span>
+                <span
+                  className={`text-[10px] font-bold ${
+                    item.status === 'APPROVED' ? 'text-teal-500' : item.status === 'REJECTED' ? 'text-red-500' : 'text-amber-500'
+                  }`}
+                >
+                  {item.status}
+                </span>
               </div>
               <div className="space-y-3">
-                <HistoryRow label="Balance" value={`Rs${Number(trx.amount || 0).toFixed(2)}`} valueColor="text-orange-400" />
-                <HistoryRow label="Type" value={(trx.metaData?.method || 'WITHDRAW').toUpperCase()} />
-                <HistoryRow label="Time" value={formatDate(trx.createdAt)} />
+                <HistoryRow label="Balance" value={`Rs${Number(item.amount || 0).toFixed(2)}`} valueColor="text-orange-400" />
+                <HistoryRow label="Type" value={item.withdrawAccount?.method || 'N/A'} />
+                <HistoryRow label="Time" value={formatDate(item.createdAt)} />
                 <HistoryRow label="Order number" value={order} showCopy onCopy={() => copyValue(order)} />
               </div>
+              {item.adminNote && <p className="text-[10px] text-gray-400 mt-3">Note: {item.adminNote}</p>}
             </div>
           );
         })}
 
-        {transactions.length === 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-50">
-            <p className="text-sm text-gray-500 text-center">No withdrawal history found.</p>
+        {requests.length === 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-50 text-center">
+            <p className="text-sm text-gray-500">No withdrawal history found.</p>
           </div>
         )}
       </div>
