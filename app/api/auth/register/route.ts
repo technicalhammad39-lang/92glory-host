@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
         balance: user.balance,
         vipLevel: user.vipLevel,
         role: user.role,
-        inviteCode: user.inviteCode
+        inviteCode: user.inviteCode,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       }
     });
   } catch (error) {

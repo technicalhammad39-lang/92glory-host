@@ -42,6 +42,16 @@ interface PopupItem {
   content: string;
 }
 
+interface RecentWinItem {
+  id: string;
+  amount: number;
+  createdAt: string;
+  user?: {
+    name?: string | null;
+    uid?: string | null;
+  } | null;
+}
+
 const FALLBACK_GAME_IMAGE = '/card1.png';
 const parseProviderList = (raw?: string | null): string[] => {
   if (!raw) return [];
@@ -71,18 +81,17 @@ export default function HomePage() {
   const [currentPopupIndex, setCurrentPopupIndex] = useState(-1);
   const [activeCategory, setActiveCategory] = useState('lottery');
   const [activeProviders, setActiveProviders] = useState<Record<string, string>>({});
-  const [mounted, setMounted] = useState(false);
   const [siteAnnouncement, setSiteAnnouncement] = useState('');
   const [announcementButton, setAnnouncementButton] = useState('Detail');
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [games, setGames] = useState<GameItem[]>([]);
   const [popups, setPopups] = useState<PopupItem[]>([]);
+  const [recentWins, setRecentWins] = useState<RecentWinItem[]>([]);
   const [lotterySwiper, setLotterySwiper] = useState<any>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    setMounted(true);
     setHydrated(true);
     const splashShown = sessionStorage.getItem('splashShown');
     if (!splashShown) {
@@ -99,6 +108,7 @@ export default function HomePage() {
         setCategories(data.categories || []);
         setGames(data.games || []);
         setPopups(data.popups || []);
+        setRecentWins(data.recentWins || []);
         setSiteAnnouncement(data.site?.announcement || '');
         setAnnouncementButton(data.site?.announcementButton || 'Detail');
 
@@ -114,6 +124,7 @@ export default function HomePage() {
         setCategories([]);
         setGames([]);
         setPopups([]);
+        setRecentWins([]);
       });
   }, []);
 
@@ -239,6 +250,19 @@ export default function HomePage() {
       ))}
     </div>
   );
+
+  const formatWinAmount = (value: number) =>
+    Number(value || 0).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+  const maskWinnerName = (name?: string | null, uid?: string | null) => {
+    const source = (name || uid || '').toUpperCase();
+    if (!source) return 'MEM***';
+    if (source.length <= 4) return source;
+    return `${source.slice(0, 3)}***${source.slice(-2)}`;
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24 overflow-x-hidden">
@@ -415,8 +439,8 @@ export default function HomePage() {
           <h3 className="text-gray-800 font-black text-sm">Winning information</h3>
         </div>
         <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+          {recentWins.slice(0, 5).map((win) => (
+            <div key={win.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <div className="flex items-center gap-3">
                 <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100">
                   <Image src={`/casinocat.png`} alt="User" fill className="object-cover" />
@@ -427,11 +451,14 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black text-gray-700 font-mono">Mem***{String.fromCharCode(65 + i)}X</p>
-                <p className="text-[11px] font-black text-accent-pink">Rs {mounted ? (Math.random() * 5000 + 100).toFixed(2) : '0.00'}</p>
+                <p className="text-[10px] font-black text-gray-700 font-mono">{maskWinnerName(win.user?.name, win.user?.uid)}</p>
+                <p className="text-[11px] font-black text-accent-pink">Rs {formatWinAmount(win.amount)}</p>
               </div>
             </div>
           ))}
+          {recentWins.length === 0 && (
+            <div className="py-3 text-center text-xs text-gray-400">No winning records yet.</div>
+          )}
         </div>
       </div>
 

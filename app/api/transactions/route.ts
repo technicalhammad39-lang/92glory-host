@@ -13,15 +13,54 @@ export async function GET(req: NextRequest) {
     if (!admin && !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const url = new URL(req.url);
-    const type = url.searchParams.get('type');
+    const type = (url.searchParams.get('type') || '').toUpperCase();
+    const status = (url.searchParams.get('status') || '').toUpperCase();
+    const limitRaw = Number(url.searchParams.get('limit') || 0);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : undefined;
     const where: any = {};
     if (type) where.type = type;
+    if (status) where.status = status;
     if (!admin && user) where.userId = user.id;
 
-    const transactions = await db.transaction.findMany({
+    const records = await db.transaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { user: true }
+      take: limit,
+      select: {
+        id: true,
+        userId: true,
+        type: true,
+        amount: true,
+        status: true,
+        meta: true,
+        createdAt: true,
+        user: admin
+          ? {
+              select: {
+                id: true,
+                uid: true,
+                name: true,
+                phone: true,
+                email: true
+              }
+            }
+          : false
+      }
+    });
+    const transactions = records.map((trx) => {
+      let metaData: Record<string, unknown> | null = null;
+      if (trx.meta) {
+        try {
+          const parsed = JSON.parse(trx.meta);
+          metaData = parsed && typeof parsed === 'object' ? parsed : null;
+        } catch {
+          metaData = null;
+        }
+      }
+      return {
+        ...trx,
+        metaData
+      };
     });
     return NextResponse.json({ transactions });
   } catch (error) {
@@ -37,7 +76,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const type = String(body.type || '').toUpperCase();
     const amount = Number(body.amount || 0);
-    const status = String(body.status || 'PENDING').toUpperCase();
+    const status = 'PENDING';
+
+    if (type !== 'DEPOSIT' && type !== 'WITHDRAW') {
+      return NextResponse.json({ error: 'Only deposit and withdraw requests are allowed.' }, { status: 400 });
+    }
 
     if (!ALLOWED_TRANSACTION_TYPES.has(type)) {
       return NextResponse.json({ error: 'Invalid transaction type.' }, { status: 400 });

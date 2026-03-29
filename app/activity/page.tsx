@@ -5,6 +5,8 @@ import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { Award, TrendingUp, Trophy } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store';
 
 interface ActivityItem {
   id: string;
@@ -15,7 +17,18 @@ interface ActivityItem {
 }
 
 export default function ActivityPage() {
+  const { isAuthenticated, token, setUser } = useAuthStore();
+  const router = useRouter();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [todayBonus, setTodayBonus] = useState(0);
+  const [totalBonus, setTotalBonus] = useState(0);
+
+  useEffect(() => {
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!isAuthenticated && !token && !storedToken) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, token, router]);
 
   useEffect(() => {
     fetch('/api/activities')
@@ -24,35 +37,62 @@ export default function ActivityPage() {
       .catch(() => setActivities([]));
   }, []);
 
+  useEffect(() => {
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    if (!authToken) return;
+
+    fetch('/api/account/summary', {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: 'no-store'
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.user) setUser(data.user);
+        setTodayBonus(Number(data.summary?.todayBonus || 0));
+        setTotalBonus(Number(data.summary?.totalBonus || 0));
+      })
+      .catch(() => {
+        setTodayBonus(0);
+        setTotalBonus(0);
+      });
+  }, [token, setUser]);
+
+  const formatAmount = (value: number) =>
+    value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
   const activeItems = activities.filter((a: any) => a.isActive !== false);
   const cardActivities = activeItems.filter((a) => a.type === 'card');
   const bannerActivities = activeItems.filter((a) => a.type !== 'card');
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAFBFE] pb-24">
-      <div className="w-full rounded-b-[22px] bg-gradient-to-r from-[#6D8CF6] to-[#DB7BE8] pt-7 pb-20 px-4 overflow-hidden">
+      <div className="w-full rounded-b-[22px] bg-gradient-to-r from-[#6D8CF6] to-[#DB7BE8] pt-5 pb-16 px-4 overflow-hidden">
         <Header transparent dark showLogo />
         
-        <div className="flex justify-around mt-8">
+        <div className="flex justify-around mt-6">
           <div className="text-center">
             <p className="text-white/80 text-[11px] font-medium">Today&apos;s bonus</p>
-            <p className="text-white font-black text-2xl mt-1">Rs0.00</p>
+            <p className="text-white font-black text-2xl mt-1">Rs{formatAmount(todayBonus)}</p>
           </div>
           <div className="w-[1px] h-10 bg-white/20 my-auto"></div>
           <div className="text-center">
             <p className="text-white/80 text-[11px] font-medium">Total bonus</p>
-            <p className="text-white font-black text-2xl mt-1">Rs5,297.01</p>
+            <p className="text-white font-black text-2xl mt-1">Rs{formatAmount(totalBonus)}</p>
           </div>
         </div>
 
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-4">
           <button className="bg-white/12 backdrop-blur-sm text-white text-xs font-bold px-8 py-2.5 rounded-full border border-white/20 active:scale-95 transition-transform">
             Bonus details
           </button>
         </div>
       </div>
 
-      <div className="px-4 -mt-8 relative z-10">
+      <div className="px-4 -mt-6 relative z-10">
         <div className="bg-white rounded-2xl py-5 px-2 flex justify-around border border-[#EEF1F8]">
           <button className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
             <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center border border-pink-100/50 shadow-inner">

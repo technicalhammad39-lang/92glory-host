@@ -15,6 +15,7 @@ import {
   ChartNoAxesColumn
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 
 type TeamStats = {
   registerCount: number;
@@ -44,9 +45,17 @@ const ZERO_STATS: TeamStats = {
 };
 
 export default function PromotionPage() {
+  const router = useRouter();
   const { token, user } = useAuthStore();
   const [stats, setStats] = useState<PromotionStats>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token && !storedToken) {
+      router.replace('/login');
+    }
+  }, [token, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -62,7 +71,7 @@ export default function PromotionPage() {
   const direct = effectiveStats?.directStats || ZERO_STATS;
   const team = effectiveStats?.teamStats || ZERO_STATS;
 
-  const inviteCode = effectiveStats?.inviteCode || user?.inviteCode || '8877431702';
+  const inviteCode = effectiveStats?.inviteCode || user?.inviteCode || '--';
 
   const leftRows = useMemo(
     () => [

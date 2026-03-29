@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Headset, Languages } from 'lucide-react';
+import { ChevronLeft, Languages } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,33 +54,15 @@ export function Header({
 
   return (
     <header className={`relative h-14 flex items-center justify-between px-4 z-40 ${transparent ? 'bg-transparent' : 'bg-white'} ${!transparent ? 'border-b border-gray-100' : ''}`}>
-      {showLogo && (
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 z-0">
-          <div className="relative w-[148px] h-10">
-            <Image src="/92glory-logo.png" alt="92 Glory0" fill className="object-contain" priority />
-          </div>
-        </div>
-      )}
-
       <div className="flex items-center gap-3 min-w-[84px] z-10">
         {showBack ? (
           <button onClick={() => router.back()} className={textColor}>
             <ChevronLeft className="w-6 h-6" />
           </button>
         ) : showLogo ? (
-          <>
-            <Link href="/account/customer-service" className="text-[#C86DE9] active:text-[#E284EA]" aria-label="Support">
-              <Headset className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={() => applyLanguage(lang === 'en' ? 'ur' : 'en')}
-              className="text-[#C86DE9] active:text-[#E284EA]"
-              aria-label="Toggle language"
-              title={lang === 'en' ? 'Switch to Urdu' : 'Switch to English'}
-            >
-              <Languages className="w-5 h-5" />
-            </button>
-          </>
+          <Link href="/" aria-label="92 Glory0 Home" className="relative w-[150px] h-10 block">
+            <Image src="/92glory-logo.png" alt="92 Glory0" fill className="object-contain object-left" priority />
+          </Link>
         ) : showLanguage ? (
           <button
             onClick={() => applyLanguage(lang === 'en' ? 'ur' : 'en')}

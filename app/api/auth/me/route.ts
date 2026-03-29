@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
         balance: user.balance,
         vipLevel: user.vipLevel,
         role: user.role,
-        inviteCode: user.inviteCode
+        inviteCode: user.inviteCode,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       }
     });
   } catch (error) {

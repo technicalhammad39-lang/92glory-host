@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BottomNav } from '@/components/BottomNav';
 import { 
   Wallet, 
@@ -31,10 +31,31 @@ import { useAuthStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, token, logout, setUser } = useAuthStore();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => {
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!isAuthenticated && !token && !storedToken) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, token, router]);
+
+  useEffect(() => {
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    if (!authToken) return;
+    fetch('/api/account/summary', {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: 'no-store'
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) setUser(data.user);
+      })
+      .catch(() => null);
+  }, [token, setUser]);
 
   const uidValue = useMemo(() => {
     if (!user) return '';
@@ -48,10 +69,13 @@ export default function AccountPage() {
   }, [user, uidValue]);
 
   const lastLogin = useMemo(() => {
-    const d = new Date();
+    const raw = user?.updatedAt || user?.createdAt;
+    if (!raw) return '--';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return '--';
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }, []);
+  }, [user?.updatedAt, user?.createdAt]);
 
   const handleLogout = () => {
     logout();

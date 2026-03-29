@@ -10,6 +10,8 @@ interface User {
   role: string;
   uid?: string;
   inviteCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface AuthState {

@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
         role: user.role,
         inviteCode: user.inviteCode,
         balance: user.balance,
-        vipLevel: user.vipLevel
+        vipLevel: user.vipLevel,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       }
     });
   } catch (error) {
@@ -56,7 +58,9 @@ export async function PUT(req: NextRequest) {
         role: updated.role,
         inviteCode: updated.inviteCode,
         balance: updated.balance,
-        vipLevel: updated.vipLevel
+        vipLevel: updated.vipLevel,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt
       }
     });
   } catch (error) {
