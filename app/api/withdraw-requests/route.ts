@@ -7,6 +7,53 @@ function normalizeStatus(value: unknown) {
   return String(value || '').trim().toUpperCase();
 }
 
+function parseMeta(raw: string | null) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function toRequestShape(transaction: any, includeUser = false) {
+  const meta = parseMeta(transaction.meta);
+  return {
+    id: transaction.id,
+    userId: transaction.userId,
+    amount: transaction.amount,
+    status:
+      transaction.status === 'COMPLETED'
+        ? 'APPROVED'
+        : transaction.status === 'FAILED'
+          ? 'REJECTED'
+          : 'PENDING',
+    note: meta?.note || null,
+    adminNote: meta?.adminAction?.reason || null,
+    reviewedAt: meta?.adminAction?.at || null,
+    reviewedBy: meta?.adminAction?.adminId || null,
+    transactionId: transaction.id,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.createdAt,
+    withdrawAccount: {
+      id: String(meta?.accountId || ''),
+      method: String(meta?.method || ''),
+      accountNumber: String(meta?.accountNumber || ''),
+      accountName: String(meta?.accountName || ''),
+      title: String(meta?.accountTitle || '')
+    },
+    transaction: includeUser
+      ? transaction
+      : {
+          id: transaction.id,
+          amount: transaction.amount,
+          status: transaction.status,
+          createdAt: transaction.createdAt
+        },
+    user: includeUser ? transaction.user || null : undefined
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
@@ -18,32 +65,28 @@ export async function GET(req: NextRequest) {
     const limitRaw = Number(url.searchParams.get('limit') || 0);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : undefined;
 
-    const where: any = {};
+    const where: any = { type: 'WITHDRAW' };
     if (!admin && user) where.userId = user.id;
-    if (status) where.status = status;
+    if (status === 'PENDING') where.status = 'PENDING';
+    if (status === 'APPROVED') where.status = 'COMPLETED';
+    if (status === 'REJECTED') where.status = 'FAILED';
 
-    const requests = await db.withdrawRequest.findMany({
+    const transactions = await db.transaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: {
-        withdrawAccount: true,
-        transaction: true,
-        user: admin
-          ? {
-              select: {
-                id: true,
-                uid: true,
-                name: true,
-                phone: true,
-                email: true
-              }
+      include: admin
+        ? {
+            user: {
+              select: { id: true, uid: true, name: true, phone: true, email: true }
             }
-          : false
-      }
+          }
+        : undefined
     });
 
-    return NextResponse.json({ requests });
+    return NextResponse.json({
+      requests: transactions.map((transaction) => toRequestShape(transaction, Boolean(admin)))
+    });
   } catch (error) {
     return apiError('withdraw-requests.get', error);
   }
@@ -63,60 +106,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Withdraw account and valid amount are required.' }, { status: 400 });
     }
 
-    const account = await db.withdrawAccount.findUnique({ where: { id: withdrawAccountId } });
+    const account = await db.paymentAccount.findUnique({ where: { id: withdrawAccountId } });
     if (!account || account.userId !== user.id || !account.isActive) {
       return NextResponse.json({ error: 'Selected withdrawal account is not available.' }, { status: 400 });
     }
 
-    const pendingTotal = await db.withdrawRequest.aggregate({
+    const pendingTotal = await db.transaction.aggregate({
       _sum: { amount: true },
       where: {
         userId: user.id,
-        status: 'PENDING'
+        type: 'WITHDRAW',
+        status: { in: ['PENDING', 'PROCESSING'] }
       }
     });
+
     const pendingAmount = Number(pendingTotal._sum.amount || 0);
     const availableBalance = Number(user.balance || 0) - pendingAmount;
     if (amount > availableBalance) {
       return NextResponse.json({ error: 'Insufficient available balance for a new withdrawal request.' }, { status: 400 });
     }
 
-    const payload = await db.$transaction(async (tx) => {
-      const trx = await tx.transaction.create({
-        data: {
-          userId: user.id,
-          type: 'WITHDRAW',
-          amount,
-          status: 'PENDING',
-          meta: JSON.stringify({
-            source: 'withdraw_request',
-            withdrawAccountId: account.id,
-            method: account.method
-          })
-        }
-      });
-
-      const request = await tx.withdrawRequest.create({
-        data: {
-          userId: user.id,
-          withdrawAccountId: account.id,
-          amount,
-          status: 'PENDING',
-          note: note || null,
-          transactionId: trx.id
-        },
-        include: {
-          withdrawAccount: true,
-          transaction: true
-        }
-      });
-
-      return request;
+    const transaction = await db.transaction.create({
+      data: {
+        userId: user.id,
+        type: 'WITHDRAW',
+        amount,
+        status: 'PENDING',
+        meta: JSON.stringify({
+          source: 'withdraw_request',
+          accountId: account.id,
+          method: account.method,
+          accountTitle: account.accountTitle,
+          accountNumber: account.accountNumber,
+          accountName: account.accountName,
+          usdtAddress: account.usdtAddress,
+          note: note || null
+        })
+      }
     });
 
-    return NextResponse.json({ request: payload });
+    return NextResponse.json({ request: toRequestShape(transaction) });
   } catch (error) {
     return apiError('withdraw-requests.post', error);
   }
 }
-

@@ -2,9 +2,68 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/api-helpers';
 import { apiError } from '@/lib/api-error';
+import { PAYMENT_CHANNELS, getPaymentChannel, isPaymentMethodId } from '@/lib/payment-channels';
 
 function normalizeStatus(value: unknown) {
   return String(value || '').trim().toUpperCase();
+}
+
+function normalizeMethod(value: unknown) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function serializeMeta(raw: string | null) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function toRequestShape(transaction: any, includeUser = false) {
+  const meta = serializeMeta(transaction.meta);
+  const method = normalizeMethod(meta?.method);
+  const channel = isPaymentMethodId(method) ? getPaymentChannel(method) : null;
+
+  return {
+    id: transaction.id,
+    userId: transaction.userId,
+    amount: transaction.amount,
+    status:
+      transaction.status === 'COMPLETED'
+        ? 'APPROVED'
+        : transaction.status === 'FAILED'
+          ? 'REJECTED'
+          : 'PENDING',
+    note: meta?.note || null,
+    adminNote: meta?.adminAction?.reason || null,
+    reviewedAt: meta?.adminAction?.at || null,
+    reviewedBy: meta?.adminAction?.adminId || null,
+    transactionId: transaction.id,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.createdAt,
+    channel: channel
+      ? {
+          id: method,
+          method,
+          title: channel.label,
+          logo: channel.icon,
+          accountNumber: channel.accountNumber || null,
+          accountName: channel.accountName || null,
+          isActive: true
+        }
+      : null,
+    transaction: includeUser
+      ? transaction
+      : {
+          id: transaction.id,
+          amount: transaction.amount,
+          status: transaction.status,
+          createdAt: transaction.createdAt
+        },
+    user: includeUser ? transaction.user || null : undefined
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -18,32 +77,28 @@ export async function GET(req: NextRequest) {
     const limitRaw = Number(url.searchParams.get('limit') || 0);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : undefined;
 
-    const where: any = {};
+    const where: any = { type: 'DEPOSIT' };
     if (!admin && user) where.userId = user.id;
-    if (status) where.status = status;
+    if (status === 'PENDING') where.status = 'PENDING';
+    if (status === 'APPROVED') where.status = 'COMPLETED';
+    if (status === 'REJECTED') where.status = 'FAILED';
 
-    const requests = await db.depositRequest.findMany({
+    const transactions = await db.transaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: {
-        channel: true,
-        transaction: true,
-        user: admin
-          ? {
-              select: {
-                id: true,
-                uid: true,
-                name: true,
-                phone: true,
-                email: true
-              }
+      include: admin
+        ? {
+            user: {
+              select: { id: true, uid: true, name: true, phone: true, email: true }
             }
-          : false
-      }
+          }
+        : undefined
     });
 
-    return NextResponse.json({ requests });
+    return NextResponse.json({
+      requests: transactions.map((transaction) => toRequestShape(transaction, Boolean(admin)))
+    });
   } catch (error) {
     return apiError('deposit-requests.get', error);
   }
@@ -55,56 +110,38 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const channelId = String(body.channelId || '').trim();
     const amount = Number(body.amount || 0);
     const note = String(body.note || '').trim();
+    const method = normalizeMethod(body.method || body.channelId);
 
-    if (!channelId || !Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ error: 'Channel and valid amount are required.' }, { status: 400 });
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Valid amount is required.' }, { status: 400 });
     }
 
-    const channel = await db.depositChannel.findUnique({ where: { id: channelId } });
-    if (!channel || !channel.isActive) {
+    if (!isPaymentMethodId(method) || method === 'USDT') {
       return NextResponse.json({ error: 'Selected channel is not available.' }, { status: 400 });
     }
 
-    const payload = await db.$transaction(async (tx) => {
-      const trx = await tx.transaction.create({
-        data: {
-          userId: user.id,
-          type: 'DEPOSIT',
-          amount,
-          status: 'PENDING',
-          meta: JSON.stringify({
-            source: 'deposit_request',
-            channelId: channel.id,
-            method: channel.method,
-            title: channel.title
-          })
-        }
-      });
-
-      const request = await tx.depositRequest.create({
-        data: {
-          userId: user.id,
-          channelId: channel.id,
-          amount,
-          status: 'PENDING',
+    const channel = PAYMENT_CHANNELS[method];
+    const transaction = await db.transaction.create({
+      data: {
+        userId: user.id,
+        type: 'DEPOSIT',
+        amount,
+        status: 'PENDING',
+        meta: JSON.stringify({
+          source: 'deposit_request',
+          method,
+          title: channel.label,
           note: note || null,
-          transactionId: trx.id
-        },
-        include: {
-          channel: true,
-          transaction: true
-        }
-      });
-
-      return request;
+          merchantAccountNumber: channel.accountNumber || null,
+          merchantAccountName: channel.accountName || null
+        })
+      }
     });
 
-    return NextResponse.json({ request: payload });
+    return NextResponse.json({ request: toRequestShape(transaction) });
   } catch (error) {
     return apiError('deposit-requests.post', error);
   }
 }
-

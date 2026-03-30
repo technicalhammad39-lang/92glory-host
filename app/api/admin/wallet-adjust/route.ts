@@ -55,20 +55,6 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      await tx.adminActionLog.create({
-        data: {
-          adminId: admin.id,
-          action: mode === 'ADD' ? 'MANUAL_BALANCE_ADD' : 'MANUAL_BALANCE_DEDUCT',
-          targetType: 'User',
-          targetId: user.id,
-          details: JSON.stringify({
-            amount,
-            reason: reason || null,
-            transactionId: transaction.id
-          })
-        }
-      });
-
       return { user: updatedUser, transaction };
     });
 

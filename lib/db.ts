@@ -13,6 +13,24 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
 
 const DB_UNAVAILABLE_COOLDOWN_MS = Number(process.env.DB_UNAVAILABLE_COOLDOWN_MS || 30_000);
 const DB_READY_CACHE_MS = Number(process.env.DB_READY_CACHE_MS || 5_000);
+const rawDatabaseUrl = String(process.env.DATABASE_URL || '').trim();
+
+let parsedDatabaseUrl: URL | null = null;
+export let databaseConfigError: string | null = null;
+
+if (!rawDatabaseUrl) {
+  databaseConfigError = 'DATABASE_URL is missing.';
+} else if (!rawDatabaseUrl.startsWith('mysql://')) {
+  databaseConfigError = 'DATABASE_URL must use mysql:// protocol.';
+} else {
+  try {
+    parsedDatabaseUrl = new URL(rawDatabaseUrl);
+  } catch {
+    databaseConfigError = 'DATABASE_URL is invalid.';
+  }
+}
+
+export const isDatabaseConfigured = !databaseConfigError;
 
 function toBoundedInt(value: string | undefined, fallback: number, min: number, max: number) {
   const parsed = Number(value);
@@ -22,12 +40,10 @@ function toBoundedInt(value: string | undefined, fallback: number, min: number, 
 }
 
 function getPrismaDatasourceUrl() {
-  const rawUrl = process.env.DATABASE_URL;
-  if (!rawUrl) return undefined;
-  if (!rawUrl.startsWith('mysql://')) return rawUrl;
+  if (!parsedDatabaseUrl) return undefined;
 
   try {
-    const url = new URL(rawUrl);
+    const url = new URL(parsedDatabaseUrl.toString());
     const connectionLimit = toBoundedInt(process.env.DB_CONNECTION_LIMIT, 5, 1, 6);
     const poolTimeout = toBoundedInt(process.env.DB_POOL_TIMEOUT, 15, 10, 60);
     const connectTimeout = toBoundedInt(process.env.DB_CONNECT_TIMEOUT, 10, 5, 30);
@@ -37,7 +53,7 @@ function getPrismaDatasourceUrl() {
     url.searchParams.set('connect_timeout', String(connectTimeout));
     return url.toString();
   } catch {
-    return rawUrl;
+    return parsedDatabaseUrl.toString();
   }
 }
 

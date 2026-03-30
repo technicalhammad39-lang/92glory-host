@@ -11,6 +11,15 @@ function parseDecision(value: unknown): Decision | null {
   return null;
 }
 
+function parseMeta(raw: string | null) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
@@ -24,82 +33,59 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Invalid decision.' }, { status: 400 });
     }
 
-    const request = await db.withdrawRequest.findUnique({
-      where: { id },
-      include: {
-        transaction: true,
-        user: {
-          select: {
-            id: true,
-            balance: true
-          }
-        }
-      }
-    });
-    if (!request) return NextResponse.json({ error: 'Withdraw request not found.' }, { status: 404 });
+    const request = await db.transaction.findUnique({ where: { id } });
+    if (!request || request.type !== 'WITHDRAW') {
+      return NextResponse.json({ error: 'Withdraw request not found.' }, { status: 404 });
+    }
     if (request.status !== 'PENDING') {
       return NextResponse.json({ error: 'Only pending requests can be updated.' }, { status: 400 });
     }
 
-    const reviewedAt = new Date();
+    const reviewedAt = new Date().toISOString();
+    const nextStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
 
     const result = await db.$transaction(async (tx) => {
-      const nextStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
-      const trxStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
-
-      const updatedRequest = await tx.withdrawRequest.update({
-        where: { id: request.id },
-        data: {
-          status: nextStatus,
-          adminNote: adminNote || null,
-          reviewedBy: admin.id,
-          reviewedAt
-        },
-        include: {
-          withdrawAccount: true,
-          transaction: true,
-          user: {
-            select: { id: true, name: true, uid: true, phone: true, email: true }
-          }
-        }
-      });
-
-      if (request.transactionId) {
-        await tx.transaction.update({
-          where: { id: request.transactionId },
-          data: { status: trxStatus }
-        });
-      }
+      const meta = parseMeta(request.meta);
 
       if (decision === 'approve') {
         const debit = await tx.user.updateMany({
           where: { id: request.userId, balance: { gte: request.amount } },
           data: { balance: { decrement: request.amount } }
         });
-        if (debit.count === 0) {
+        if (!debit.count) {
           throw new Error('INSUFFICIENT_BALANCE');
         }
       }
 
-      await tx.adminActionLog.create({
+      return tx.transaction.update({
+        where: { id: request.id },
         data: {
-          adminId: admin.id,
-          action: decision === 'approve' ? 'APPROVE_WITHDRAW' : 'REJECT_WITHDRAW',
-          targetType: 'WithdrawRequest',
-          targetId: request.id,
-          details: JSON.stringify({
-            amount: request.amount,
-            userId: request.userId,
-            transactionId: request.transactionId,
-            adminNote: adminNote || null
+          status: nextStatus,
+          meta: JSON.stringify({
+            ...meta,
+            adminAction: {
+              status: nextStatus,
+              reason: adminNote || null,
+              adminId: admin.id,
+              at: reviewedAt
+            }
           })
         }
       });
-
-      return updatedRequest;
     });
 
-    return NextResponse.json({ request: result });
+    return NextResponse.json({
+      request: {
+        id: result.id,
+        userId: result.userId,
+        amount: result.amount,
+        status: result.status === 'COMPLETED' ? 'APPROVED' : 'REJECTED',
+        adminNote: adminNote || null,
+        reviewedAt,
+        reviewedBy: admin.id,
+        transactionId: result.id
+      }
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
       return NextResponse.json({ error: 'User balance is not enough to approve this withdrawal.' }, { status: 400 });

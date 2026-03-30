@@ -11,6 +11,15 @@ function parseDecision(value: unknown): Decision | null {
   return null;
 }
 
+function parseMeta(raw: string | null) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
@@ -24,44 +33,34 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Invalid decision.' }, { status: 400 });
     }
 
-    const request = await db.depositRequest.findUnique({
-      where: { id },
-      include: { transaction: true }
-    });
-    if (!request) return NextResponse.json({ error: 'Deposit request not found.' }, { status: 404 });
+    const request = await db.transaction.findUnique({ where: { id } });
+    if (!request || request.type !== 'DEPOSIT') {
+      return NextResponse.json({ error: 'Deposit request not found.' }, { status: 404 });
+    }
     if (request.status !== 'PENDING') {
       return NextResponse.json({ error: 'Only pending requests can be updated.' }, { status: 400 });
     }
 
-    const reviewedAt = new Date();
+    const reviewedAt = new Date().toISOString();
+    const nextStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
 
     const result = await db.$transaction(async (tx) => {
-      const nextStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
-      const trxStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
-
-      const updatedRequest = await tx.depositRequest.update({
+      const meta = parseMeta(request.meta);
+      const updated = await tx.transaction.update({
         where: { id: request.id },
         data: {
           status: nextStatus,
-          adminNote: adminNote || null,
-          reviewedBy: admin.id,
-          reviewedAt
-        },
-        include: {
-          channel: true,
-          transaction: true,
-          user: {
-            select: { id: true, name: true, uid: true, phone: true, email: true }
-          }
+          meta: JSON.stringify({
+            ...meta,
+            adminAction: {
+              status: nextStatus,
+              reason: adminNote || null,
+              adminId: admin.id,
+              at: reviewedAt
+            }
+          })
         }
       });
-
-      if (request.transactionId) {
-        await tx.transaction.update({
-          where: { id: request.transactionId },
-          data: { status: trxStatus }
-        });
-      }
 
       if (decision === 'approve') {
         await tx.user.update({
@@ -70,27 +69,22 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
         });
       }
 
-      await tx.adminActionLog.create({
-        data: {
-          adminId: admin.id,
-          action: decision === 'approve' ? 'APPROVE_DEPOSIT' : 'REJECT_DEPOSIT',
-          targetType: 'DepositRequest',
-          targetId: request.id,
-          details: JSON.stringify({
-            amount: request.amount,
-            userId: request.userId,
-            transactionId: request.transactionId,
-            adminNote: adminNote || null
-          })
-        }
-      });
-
-      return updatedRequest;
+      return updated;
     });
 
-    return NextResponse.json({ request: result });
+    return NextResponse.json({
+      request: {
+        id: result.id,
+        userId: result.userId,
+        amount: result.amount,
+        status: result.status === 'COMPLETED' ? 'APPROVED' : 'REJECTED',
+        adminNote: adminNote || null,
+        reviewedAt,
+        reviewedBy: admin.id,
+        transactionId: result.id
+      }
+    });
   } catch (error) {
     return apiError('deposit-requests.put', error);
   }
 }
-
