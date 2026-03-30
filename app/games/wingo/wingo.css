@@ -1,0 +1,49 @@
+@import url('/wingo/css/module.css');
+@import url('/wingo/css/page-activity.css');
+@import url('/wingo/css/index.css');
+@import url('/wingo/css/page-home.css');
+
+.wingo-original-page {
+  --main-color: #c86de9;
+  --main_gradient-color: linear-gradient(90deg, #6f8af4 0%, #e285ea 100%);
+  --main_gradient-color2: linear-gradient(180deg, #6f8af4 0%, #e285ea 100%);
+  --light-main_gradient-color: var(--main_gradient-color);
+  --light-main-color: var(--main-color);
+  --sheet_nva_color: var(--main-color);
+  --pop_bg-color: linear-gradient(180deg, #6f8af4 0%, #e285ea 68.59%);
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: #9195a3;
+  overflow-x: hidden;
+}
+
+.wingo-original-page > div {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.wingo-original-page #app {
+  width: min(100%, 10rem);
+  margin-inline: auto;
+  min-height: 100vh;
+}
+
+.wingo-original-page .WinGo__C[data-v-5d71c3fd] {
+  width: 100%;
+}
+
+.wingo-original-page .navbar__content-center .headLogo[data-v-12a80a3e] {
+  background-image: url('/92glory-logo.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+
+.wingo-original-page .noticeBar__container button,
+.wingo-original-page .noticeBar__container-body-text {
+  color: #fff !important;
+}

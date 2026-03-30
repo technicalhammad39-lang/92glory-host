@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum WingoRoundStatus {
+  OPEN
+  LOCKED
+  SETTLED
+}
+
+enum WingoBetType {
+  NUMBER
+  COLOR
+  SIZE
+}
+
+enum WingoBetStatus {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+}
+
+enum WingoResultMode {
+  AUTO
+  MANUAL
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String?
+  phone        String?       @unique
+  email        String?       @unique
+  uid          String?       @unique
+  inviteCode   String        @unique
+  password     String
+  balance      Float         @default(0.0)
+  vipLevel     Int           @default(0)
+  exp          Int           @default(0)
+  role         String        @default("USER") // USER or ADMIN
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  wingoBets    WingoBet[]
+  paymentAccounts PaymentAccount[]
+  downlines    User[]        @relation("UserToDownlines")
+  uplineId     String?
+  upline       User?         @relation("UserToDownlines", fields: [uplineId], references: [id])
+}
+
+model PaymentAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method        String
+  accountTitle  String
+  accountNumber String?
+  accountName   String?
+  usdtAddress   String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, method])
+  @@index([userId, isActive])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS, BONUS
+  amount    Float
+  status    String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  meta      String?
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  image     String
+  link      String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  placement String   @default("home")
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  title     String
+  description String?
+  image     String
+  type      String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Popup {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  icon      String
+  providers String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  image     String
+  provider  String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model VipLevel {
+  id          String   @id @default(cuid())
+  level       Int      @unique
+  title       String?
+  expRequired Int
+  payoutDays  Int      @default(5)
+  betToExp    Int      @default(100)
+  isOpen      Boolean  @default(true)
+  cardImage   String?
+  badgeImage  String?
+  createdAt   DateTime @default(now())
+}
+
+model VipBenefit {
+  id             String   @id @default(cuid())
+  level          Int
+  group          String   // LEVEL or MY
+  title          String
+  description    String?
+  image          String
+  value          String?
+  secondaryValue String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model SiteConfig {
+  id                    String   @id @default(cuid())
+  brandName             String   @default("92 Glory0")
+  announcement          String?
+  announcementButton    String?  @default("Detail")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model ContentPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model PromotionSetting {
+  id             String   @id @default(cuid())
+  commissionRate Float    @default(0.1)
+  rebateRate     Float    @default(0.15)
+  customerService String?
+  updatedAt      DateTime @updatedAt
+}
+
+model WingoRound {
+  id                String           @id @default(cuid())
+  issueNumber       String           @unique
+  durationSec       Int
+  status            WingoRoundStatus @default(OPEN)
+  startsAt          DateTime
+  lockAt            DateTime
+  endAt             DateTime
+  forcedResultNumber Int?
+  resultNumber      Int?
+  resultColor       String?
+  resultSize        String?
+  resultMode        WingoResultMode?
+  settledAt         DateTime?
+  totalBetAmount    Float            @default(0.0)
+  totalPayoutAmount Float            @default(0.0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  bets              WingoBet[]
+  result            WingoResult?
+
+  @@index([durationSec, startsAt(sort: Desc)])
+  @@index([durationSec, status, endAt])
+  @@index([endAt, status])
+}
+
+model WingoBet {
+  id               String         @id @default(cuid())
+  roundId          String
+  round            WingoRound     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  issueNumber      String
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  betType          WingoBetType
+  selection        String
+  amount           Float
+  payoutMultiplier Float
+  potentialWinAmount Float
+  status           WingoBetStatus @default(PENDING)
+  resultNumber     Int?
+  winAmount        Float          @default(0.0)
+  settledAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([roundId, status])
+  @@index([issueNumber])
+}
+
+model WingoResult {
+  id           String          @id @default(cuid())
+  roundId      String          @unique
+  round        WingoRound      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  issueNumber  String
+  resultNumber Int
+  color        String
+  size         String
+  mode         WingoResultMode @default(AUTO)
+  metadata     String?
+  createdAt    DateTime        @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([issueNumber])
+}
