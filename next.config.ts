@@ -21,16 +21,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/_next/static/:path*',
-        headers: [
+        source: '/:path*',
+        has: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
+            type: 'header',
+            key: 'accept',
+            value: '.*text/html.*'
           }
-        ]
-      },
-      {
-        source: '/((?!_next/static|_next/image|favicon.ico).*)',
+        ],
         headers: [
           {
             key: 'Cache-Control',

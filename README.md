@@ -33,12 +33,19 @@ npm run dev
 ## Production
 1. Build:
 ```bash
-npm run build
+pnpm build
 ```
 2. Start:
 ```bash
-npm run start
+pnpm start
 ```
+
+### Hostinger (recommended runtime)
+- After `pnpm build`, run the standalone server:
+```bash
+pnpm start:standalone
+```
+- `build` now auto-copies `public` and `.next/static` into `.next/standalone` so chunk/css files are always available in production.
 
 ## Notes
 - The app seeds default home/admin data automatically (unless `AUTO_SEED=false`).

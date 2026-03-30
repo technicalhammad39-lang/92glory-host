@@ -37,7 +37,9 @@ export function ChunkRecovery() {
     const attemptReload = () => {
       if (sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY) === '1') return;
       sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, '1');
-      window.location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.set('__chunk', String(Date.now()));
+      window.location.replace(url.toString());
     };
 
     const onWindowError = (event: ErrorEvent) => {
