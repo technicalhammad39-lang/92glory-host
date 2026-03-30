@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/api-helpers';
 import { apiError } from '@/lib/api-error';
+import { TX_OPTIONS } from '@/lib/tx-options';
 
 type Mode = 'ADD' | 'DEDUCT';
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
       });
 
       return { user: updatedUser, transaction };
-    });
+    }, TX_OPTIONS);
 
     return NextResponse.json(payload);
   } catch (error) {

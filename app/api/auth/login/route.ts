@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
 import { ensureSeededSafe } from '@/lib/seed';
 import { normalizeIdentifier } from '@/lib/user-utils';
+import { recordLoginActivity } from '@/lib/feature-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +32,11 @@ export async function POST(req: NextRequest) {
     }
 
     const token = signToken({ id: user.id, role: user.role });
+    try {
+      await recordLoginActivity(user.id);
+    } catch {
+      // login should not fail if activity logging fails
+    }
     return NextResponse.json({
       token,
       user: {

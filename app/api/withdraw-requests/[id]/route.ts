@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/api-helpers';
 import { apiError } from '@/lib/api-error';
+import { withTxRetry } from '@/lib/tx-retry';
 
 type Decision = 'approve' | 'reject';
 
@@ -33,7 +34,10 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Invalid decision.' }, { status: 400 });
     }
 
-    const request = await db.transaction.findUnique({ where: { id } });
+    const request = await db.transaction.findUnique({
+      where: { id },
+      select: { id: true, userId: true, amount: true, type: true, status: true, meta: true }
+    });
     if (!request || request.type !== 'WITHDRAW') {
       return NextResponse.json({ error: 'Withdraw request not found.' }, { status: 404 });
     }
@@ -44,7 +48,15 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     const reviewedAt = new Date().toISOString();
     const nextStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
 
-    const result = await db.$transaction(async (tx) => {
+    const result = await withTxRetry(async (tx) => {
+      const lock = await tx.transaction.updateMany({
+        where: { id: request.id, type: 'WITHDRAW', status: 'PENDING' },
+        data: { status: 'PROCESSING' }
+      });
+      if (!lock.count) {
+        return tx.transaction.findUnique({ where: { id: request.id } });
+      }
+
       const meta = parseMeta(request.meta);
 
       if (decision === 'approve') {
@@ -74,12 +86,18 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       });
     });
 
+    if (!result) return NextResponse.json({ error: 'Withdraw request not found.' }, { status: 404 });
     return NextResponse.json({
       request: {
         id: result.id,
         userId: result.userId,
         amount: result.amount,
-        status: result.status === 'COMPLETED' ? 'APPROVED' : 'REJECTED',
+        status:
+          result.status === 'COMPLETED'
+            ? 'APPROVED'
+            : result.status === 'FAILED'
+              ? 'REJECTED'
+              : 'PENDING',
         adminNote: adminNote || null,
         reviewedAt,
         reviewedBy: admin.id,

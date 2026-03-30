@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/api-helpers';
+import { withTxRetry } from '@/lib/tx-retry';
 
 function parseMeta(raw: string | null) {
   if (!raw) return {};
@@ -40,7 +41,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const trx = await db.transaction.findUnique({
     where: { id },
-    include: { user: true }
+    include: {
+      user: {
+        select: {
+          id: true,
+          uid: true,
+          name: true,
+          phone: true,
+          email: true,
+          role: true
+        }
+      }
+    }
   });
   if (!trx) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (!admin && trx.userId !== user!.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -105,8 +117,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Invalid status.' }, { status: 400 });
   }
 
-  const result = await db.$transaction(async (tx) => {
-    const existing = await tx.transaction.findUnique({ where: { id }, include: { user: true } });
+  const result = await withTxRetry(async (tx) => {
+    const existing = await tx.transaction.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            uid: true,
+            name: true,
+            phone: true,
+            email: true,
+            role: true
+          }
+        }
+      }
+    });
     if (!existing) return null;
 
     if (existing.status === nextStatus) return existing;
@@ -118,7 +144,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     if (!claim.count) {
-      return tx.transaction.findUnique({ where: { id }, include: { user: true } });
+      return tx.transaction.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              uid: true,
+              name: true,
+              phone: true,
+              email: true,
+              role: true
+            }
+          }
+        }
+      });
     }
 
     let finalStatus = nextStatus;
@@ -143,7 +183,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return tx.transaction.update({
       where: { id: existing.id },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            uid: true,
+            name: true,
+            phone: true,
+            email: true,
+            role: true
+          }
+        }
+      },
       data: {
         status: finalStatus,
         meta: appendAdminMeta(existing.meta, {

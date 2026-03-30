@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const yesterdayEnd = startOfDay(today);
   const weekStart = startOfWeek(today);
 
-  const [yesterdayCommission, totalCommission, weekCommission, setting] = await Promise.all([
+  const [yesterdayCommission, totalCommission, weekCommission, setting, partnerRules] = await Promise.all([
     db.transaction.aggregate({
       _sum: { amount: true },
       where: {
@@ -56,7 +56,11 @@ export async function GET(req: NextRequest) {
       _sum: { amount: true },
       where: { userId: user.id, type: 'COMMISSION', createdAt: { gte: weekStart } }
     }),
-    db.promotionSetting.findFirst()
+    db.promotionSetting.findFirst(),
+    db.partnerRewardRule.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }]
+    })
   ]);
 
   const directUserIds = directIds.map((d) => d.id);
@@ -98,6 +102,8 @@ export async function GET(req: NextRequest) {
       totalTeam: teamIds.length
     },
     inviteCode: user.inviteCode,
-    setting
+    inviteLink: `${setting?.invitationBaseUrl || ''}${user.inviteCode}`,
+    setting,
+    partnerRules
   });
 }

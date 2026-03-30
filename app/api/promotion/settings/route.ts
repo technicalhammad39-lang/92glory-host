@@ -21,14 +21,24 @@ export async function PUT(req: NextRequest) {
         data: {
           commissionRate: body.commissionRate ?? existing.commissionRate,
           rebateRate: body.rebateRate ?? existing.rebateRate,
-          customerService: body.customerService ?? existing.customerService
+          customerService: body.customerService ?? existing.customerService,
+          partnerRewardCap: body.partnerRewardCap ?? existing.partnerRewardCap,
+          invitationBaseUrl: body.invitationBaseUrl ?? existing.invitationBaseUrl,
+          invitationRulesText: body.invitationRulesText ?? existing.invitationRulesText,
+          promotionRulesText: body.promotionRulesText ?? existing.promotionRulesText,
+          rebateRatioRulesText: body.rebateRatioRulesText ?? existing.rebateRatioRulesText
         }
       })
     : await db.promotionSetting.create({
         data: {
           commissionRate: body.commissionRate ?? 0.1,
           rebateRate: body.rebateRate ?? 0.15,
-          customerService: body.customerService ?? ''
+          customerService: body.customerService ?? '',
+          partnerRewardCap: body.partnerRewardCap ?? 10000,
+          invitationBaseUrl: body.invitationBaseUrl ?? '',
+          invitationRulesText: body.invitationRulesText ?? '',
+          promotionRulesText: body.promotionRulesText ?? '',
+          rebateRatioRulesText: body.rebateRatioRulesText ?? ''
         }
       });
   return NextResponse.json({ setting });

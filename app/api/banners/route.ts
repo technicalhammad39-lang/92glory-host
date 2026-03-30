@@ -16,8 +16,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const banner = await db.banner.create({
     data: {
+      title: body.title || '',
       image: body.image,
       link: body.link || null,
+      description: body.description || null,
+      rulesText: body.rulesText || null,
       order: body.order ?? 0,
       placement: body.placement || 'home',
       isActive: body.isActive ?? true

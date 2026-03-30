@@ -15,10 +15,42 @@ const AUTO_SEED_ENABLED = process.env.AUTO_SEED === 'true' ? usingFileDatabase :
 const AUTO_SEED_RETRY_COOLDOWN_MS = Number(process.env.AUTO_SEED_RETRY_COOLDOWN_MS || 60_000);
 
 const defaultBanners = [
-  { image: '/banner 1.png', order: 1, placement: 'home' },
-  { image: '/banner 2.png', order: 2, placement: 'home' },
-  { image: '/banenr 3.png', order: 3, placement: 'home' },
-  { image: '/banner 4.png', order: 4, placement: 'home' }
+  {
+    title: 'First Deposit Bonus',
+    image: '/banner 1.png',
+    link: '/activity/first-recharge',
+    description: 'First recharge reward details and conditions.',
+    rulesText: 'Exclusive for first recharge only.',
+    order: 1,
+    placement: 'home'
+  },
+  {
+    title: 'Activity Award',
+    image: '/banner 2.png',
+    link: '/activity/daily-tasks',
+    description: 'Complete tasks to receive activity rewards.',
+    rulesText: 'Daily and weekly tasks reset on schedule.',
+    order: 2,
+    placement: 'home'
+  },
+  {
+    title: 'Attendance Bonus',
+    image: '/banenr 3.png',
+    link: '/activity/attendance',
+    description: 'Consecutive attendance rewards.',
+    rulesText: 'Daily claim, consecutive streak bonuses.',
+    order: 3,
+    placement: 'home'
+  },
+  {
+    title: 'Partner Rewards',
+    image: '/banner 4.png',
+    link: '/promotion/partner-rewards',
+    description: 'Invite team members and earn commissions.',
+    rulesText: 'Referral and turnover terms apply.',
+    order: 4,
+    placement: 'home'
+  }
 ];
 
 const defaultCategories = [
@@ -197,7 +229,8 @@ const defaultPages = [
   { slug: 'commission-detail', title: 'Commission Detail', content: 'Commission details and history.' },
   { slug: 'invitation-rules', title: 'Invitation Rules', content: 'Invitation rules and terms.' },
   { slug: 'agent-support', title: 'Agent Line Customer Service', content: 'Agent support contact.' },
-  { slug: 'rebate-ratio', title: 'Rebate Ratio', content: 'Rebate ratio information.' }
+  { slug: 'rebate-ratio', title: 'Rebate Ratio', content: 'Rebate ratio information.' },
+  { slug: 'promotion-rules', title: 'Rules', content: 'Promotion rules and rebate level explanation.' }
 ];
 
 export const defaultSiteConfig = {
@@ -223,8 +256,114 @@ const defaultPopup = {
 const defaultPromotionSetting = {
   commissionRate: 0.1,
   rebateRate: 0.15,
-  customerService: 'telegram: @92Glory0Support'
+  customerService: 'telegram: @92Glory0Support',
+  partnerRewardCap: 10000,
+  invitationBaseUrl: 'https://www.92go11.com/#/register?code=',
+  invitationRulesText: 'Invite friends with your code to build your team and receive rewards.',
+  promotionRulesText: 'Promotion rules are managed from admin panel.',
+  rebateRatioRulesText: 'Rebate percentages depend on membership level and game type.'
 };
+
+const defaultAttendanceSetting = {
+  minDepositAmount: 500,
+  oneTimeOnly: false,
+  day1Reward: 15,
+  day2Reward: 25,
+  day3Reward: 45,
+  day4Reward: 85,
+  day5Reward: 110,
+  day6Reward: 140,
+  day7Reward: 180
+};
+
+const defaultActivityTasks = [
+  {
+    title: 'Slot Daily Spin',
+    description: 'Members must bet on "SLOTS" and meet the daily minimum amount to complete the task and get the reward.',
+    gameType: 'SLOT',
+    period: 'DAILY' as const,
+    targetAmount: 3000,
+    rewardAmount: 10,
+    order: 1,
+    isActive: true
+  },
+  {
+    title: 'Slot Daily Spin',
+    description: 'Members must bet on "SLOTS" and meet the daily minimum amount to complete the task and get the reward.',
+    gameType: 'SLOT',
+    period: 'DAILY' as const,
+    targetAmount: 10000,
+    rewardAmount: 30,
+    order: 2,
+    isActive: true
+  },
+  {
+    title: 'Slot Daily Spin',
+    description: 'Members must bet on "SLOTS" and meet the daily minimum amount to complete the task and get the reward.',
+    gameType: 'SLOT',
+    period: 'DAILY' as const,
+    targetAmount: 100000,
+    rewardAmount: 180,
+    order: 3,
+    isActive: true
+  }
+];
+
+const defaultRebateConfig = [
+  { gameType: 'ALL', title: 'All', rate: 0.003, order: 1, isActive: true },
+  { gameType: 'LOTTERY', title: 'Lottery', rate: 0.0035, order: 2, isActive: true },
+  { gameType: 'CASINO', title: 'Casino', rate: 0.004, order: 3, isActive: true },
+  { gameType: 'SLOT', title: 'Slot', rate: 0.0045, order: 4, isActive: true },
+  { gameType: 'FISH', title: 'Fish', rate: 0.003, order: 5, isActive: true }
+];
+
+const defaultPartnerRules = [
+  { stage: '1st deposit', minAmount: 300, maxAmount: 500, minTurnover: 1500, bonusAmount: 60, order: 1, isActive: true },
+  { stage: '1st deposit', minAmount: 500, maxAmount: 1000, minTurnover: 2500, bonusAmount: 80, order: 2, isActive: true },
+  { stage: '1st deposit', minAmount: 1000, maxAmount: 5000, minTurnover: 5000, bonusAmount: 170, order: 3, isActive: true },
+  { stage: '1st deposit', minAmount: 5000, maxAmount: 10000, minTurnover: 25000, bonusAmount: 450, order: 4, isActive: true },
+  { stage: '2nd deposit', minAmount: 5000, maxAmount: 10000, minTurnover: 50000, bonusAmount: 400, order: 5, isActive: true },
+  { stage: '2nd deposit', minAmount: 10000, maxAmount: 50000, minTurnover: 100000, bonusAmount: 850, order: 6, isActive: true },
+  { stage: '2nd deposit', minAmount: 50000, maxAmount: 100000, minTurnover: 500000, bonusAmount: 3000, order: 7, isActive: true },
+  { stage: '2nd deposit', minAmount: 100000, maxAmount: 99999999, minTurnover: 1000000, bonusAmount: 6000, order: 8, isActive: true },
+  { stage: '3rd deposit', minAmount: 1000, maxAmount: 5000, minTurnover: 15000, bonusAmount: 150, order: 9, isActive: true },
+  { stage: '3rd deposit', minAmount: 5000, maxAmount: 10000, minTurnover: 75000, bonusAmount: 520, order: 10, isActive: true },
+  { stage: '3rd deposit', minAmount: 10000, maxAmount: 50000, minTurnover: 150000, bonusAmount: 920, order: 11, isActive: true },
+  { stage: '3rd deposit', minAmount: 50000, maxAmount: 100000, minTurnover: 750000, bonusAmount: 3200, order: 12, isActive: true },
+  { stage: '3rd deposit', minAmount: 100000, maxAmount: 250000, minTurnover: 1500000, bonusAmount: 5200, order: 13, isActive: true },
+  { stage: '3rd deposit', minAmount: 250000, maxAmount: 99999999, minTurnover: 3750000, bonusAmount: 10000, order: 14, isActive: true }
+];
+
+const defaultRebateRatios = [
+  { category: 'LOTTERY', level: 0, depth: 1, ratio: 0.003, order: 1 },
+  { category: 'LOTTERY', level: 0, depth: 2, ratio: 0.0009, order: 2 },
+  { category: 'LOTTERY', level: 0, depth: 3, ratio: 0.00027, order: 3 },
+  { category: 'LOTTERY', level: 0, depth: 4, ratio: 0.000081, order: 4 },
+  { category: 'LOTTERY', level: 0, depth: 5, ratio: 0.0000243, order: 5 },
+  { category: 'LOTTERY', level: 0, depth: 6, ratio: 0.00000729, order: 6 },
+  { category: 'LOTTERY', level: 1, depth: 1, ratio: 0.0035, order: 7 },
+  { category: 'LOTTERY', level: 1, depth: 2, ratio: 0.001225, order: 8 },
+  { category: 'LOTTERY', level: 1, depth: 3, ratio: 0.00042875, order: 9 },
+  { category: 'LOTTERY', level: 1, depth: 4, ratio: 0.00015006, order: 10 },
+  { category: 'LOTTERY', level: 1, depth: 5, ratio: 0.00052522, order: 11 },
+  { category: 'LOTTERY', level: 1, depth: 6, ratio: 0.0001838, order: 12 },
+  { category: 'LOTTERY', level: 2, depth: 1, ratio: 0.00375, order: 13 },
+  { category: 'LOTTERY', level: 2, depth: 2, ratio: 0.00140625, order: 14 },
+  { category: 'LOTTERY', level: 2, depth: 3, ratio: 0.00052734, order: 15 },
+  { category: 'LOTTERY', level: 2, depth: 4, ratio: 0.00019775, order: 16 },
+  { category: 'LOTTERY', level: 2, depth: 5, ratio: 0.00007416, order: 17 },
+  { category: 'LOTTERY', level: 2, depth: 6, ratio: 0.00002781, order: 18 }
+];
+
+const defaultCustomerServiceLinks = [
+  {
+    label: 'Telegram',
+    type: 'TELEGRAM',
+    url: 'https://t.me/92Glory0Support',
+    isActive: true,
+    order: 1
+  }
+];
 
 function isUniqueConstraintError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -364,6 +503,55 @@ async function seedPromotionSetting() {
   await db.promotionSetting.create({ data: defaultPromotionSetting });
 }
 
+async function seedAttendanceSetting() {
+  const item = await db.attendanceSetting.findFirst();
+  if (item) return;
+  await db.attendanceSetting.create({ data: defaultAttendanceSetting });
+}
+
+async function seedActivityTasks() {
+  const count = await db.activityTask.count();
+  if (count) return;
+  await db.activityTask.createMany({ data: defaultActivityTasks });
+}
+
+async function seedRebateConfigs() {
+  const count = await db.rebateConfig.count();
+  if (count) return;
+  await db.rebateConfig.createMany({ data: defaultRebateConfig });
+}
+
+async function seedJackpotSetting() {
+  const item = await db.jackpotSetting.findFirst();
+  if (item) return;
+  await db.jackpotSetting.create({
+    data: {
+      minBetAmount: 10000,
+      rewardAmount: 180,
+      validDays: 7,
+      isActive: true
+    }
+  });
+}
+
+async function seedPartnerRules() {
+  const count = await db.partnerRewardRule.count();
+  if (count) return;
+  await db.partnerRewardRule.createMany({ data: defaultPartnerRules });
+}
+
+async function seedRebateRatios() {
+  const count = await db.rebateRatio.count();
+  if (count) return;
+  await db.rebateRatio.createMany({ data: defaultRebateRatios });
+}
+
+async function seedCustomerServiceLinks() {
+  const count = await db.customerServiceLink.count();
+  if (count) return;
+  await db.customerServiceLink.createMany({ data: defaultCustomerServiceLinks });
+}
+
 async function runSeed() {
   await seedSiteConfig();
   await seedAdminUser();
@@ -376,6 +564,13 @@ async function runSeed() {
   await seedVipBenefits();
   await seedContentPages();
   await seedPromotionSetting();
+  await seedAttendanceSetting();
+  await seedActivityTasks();
+  await seedRebateConfigs();
+  await seedJackpotSetting();
+  await seedPartnerRules();
+  await seedRebateRatios();
+  await seedCustomerServiceLinks();
 }
 
 export async function ensureSeeded() {

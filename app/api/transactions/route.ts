@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/api-helpers';
 import { getPaymentChannel, isPaymentMethodId } from '@/lib/payment-channels';
+import { withTxRetry } from '@/lib/tx-retry';
 
 function parseMeta(raw: string | null) {
   if (!raw) return null;
@@ -42,7 +43,18 @@ export async function GET(req: NextRequest) {
   const transactions = await db.transaction.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    include: { user: true }
+    include: {
+      user: {
+        select: {
+          id: true,
+          uid: true,
+          name: true,
+          phone: true,
+          email: true,
+          role: true
+        }
+      }
+    }
   });
 
   return NextResponse.json({ transactions: transactions.map(serializeTransaction) });
@@ -119,7 +131,7 @@ export async function POST(req: NextRequest) {
         usdtAddress: account.usdtAddress
       };
 
-      const transaction = await db.$transaction(async (tx) => {
+      const transaction = await withTxRetry(async (tx) => {
         const freshUser = await tx.user.findUnique({
           where: { id: user.id },
           select: { balance: true }

@@ -137,7 +137,7 @@ export default function AccountPage() {
       <div className="mx-4 mt-4">
         <div className="bg-white rounded-xl overflow-hidden border border-white/80">
           <MenuItem icon={Bell} label="Notification" color="text-[#D77CE8]" badge="7" href="/account/notification" />
-          <MenuItem icon={Gift} label="Gifts" color="text-[#D77CE8]" href="/account/gifts" />
+          <MenuItem icon={Gift} label="Gifts" color="text-[#D77CE8]" href="/activity/gift" />
           <MenuItem icon={BarChart3} label="Game statistics" color="text-[#D77CE8]" href="/account/game-statistics" />
           <MenuItem icon={Globe} label="Language" value="English" color="text-[#D77CE8]" href="/account/language" />
         </div>

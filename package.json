@@ -7,6 +7,7 @@
     "build": "next build --webpack && node scripts/prepare-standalone.mjs",
     "start": "next start",
     "start:standalone": "node .next/standalone/server.js",
+    "db:sync": "node scripts/sync-db-schema.mjs",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "lint": "eslint .",

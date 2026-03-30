@@ -162,7 +162,7 @@ export default function HomePage() {
     multiplier?: string;
   }) => {
     const [imageSrc, setImageSrc] = useState(game.image || FALLBACK_GAME_IMAGE);
-    const href = game.name.toLowerCase().includes('wingo') ? '/games/wingo' : undefined;
+    const href = '/games/wingo';
 
     const content = (
       <motion.div whileTap={{ scale: 0.97 }} className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-white">
@@ -189,13 +189,12 @@ export default function HomePage() {
       </motion.div>
     );
 
-    if (!href) return content;
     return <Link href={href}>{content}</Link>;
   };
 
   const LotteryCard = ({ game }: { game: GameItem }) => {
     const [imageSrc, setImageSrc] = useState(game.image || FALLBACK_GAME_IMAGE);
-    const href = game.name.toLowerCase().includes('wingo') ? '/games/wingo' : undefined;
+    const href = '/games/wingo';
     const content = (
       <motion.div
         whileTap={{ scale: 0.97 }}
@@ -215,7 +214,6 @@ export default function HomePage() {
       </motion.div>
     );
 
-    if (!href) return content;
     return <Link href={href}>{content}</Link>;
   };
 
@@ -271,11 +269,22 @@ export default function HomePage() {
             loop={banners.length > 1}
             className="w-full h-full"
           >
-            {banners.map((src) => (
-              <SwiperSlide key={src.id}>
-                <Image src={src.image} alt="Banner" fill sizes="(max-width: 450px) 100vw, 450px" className="object-cover" priority />
-              </SwiperSlide>
-            ))}
+            {banners.map((src) => {
+              const href = `/banner/${src.id}`;
+              const content = (
+                <div className="relative w-full h-full">
+                  <Image src={src.image} alt="Banner" fill sizes="(max-width: 450px) 100vw, 450px" className="object-cover" priority />
+                </div>
+              );
+
+              return (
+                <SwiperSlide key={src.id}>
+                  <Link href={href} className="block w-full h-full">
+                    {content}
+                  </Link>
+                </SwiperSlide>
+              );
+            })}
           </Swiper>
         </div>
       </div>

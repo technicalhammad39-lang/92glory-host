@@ -5,7 +5,6 @@ import { apiError } from '@/lib/api-error';
 
 const BONUS_TYPES = ['BONUS', 'COMMISSION'];
 const COMPLETED = 'COMPLETED';
-const ACTIVE_STATUSES = ['PENDING', 'COMPLETED'];
 
 function startOfToday() {
   const now = new Date();
@@ -28,26 +27,27 @@ export async function GET(req: NextRequest) {
     const [
       depositTotal,
       withdrawTotal,
-      totalFlow,
+      gameWinTotal,
+      gameLossTotal,
       todayBonus,
       totalBonus,
       transactionCount
     ] = await Promise.all([
       db.transaction.aggregate({
         _sum: { amount: true },
-        where: { userId: user.id, type: 'DEPOSIT', status: { in: ACTIVE_STATUSES } }
+        where: { userId: user.id, type: 'DEPOSIT', status: COMPLETED }
       }),
       db.transaction.aggregate({
         _sum: { amount: true },
-        where: { userId: user.id, type: 'WITHDRAW', status: { in: ACTIVE_STATUSES } }
+        where: { userId: user.id, type: 'WITHDRAW', status: COMPLETED }
       }),
       db.transaction.aggregate({
         _sum: { amount: true },
-        where: {
-          userId: user.id,
-          status: { in: ACTIVE_STATUSES },
-          type: { in: ['DEPOSIT', 'WITHDRAW'] }
-        }
+        where: { userId: user.id, type: 'GAME_WIN', status: COMPLETED }
+      }),
+      db.transaction.aggregate({
+        _sum: { amount: true },
+        where: { userId: user.id, type: 'GAME_LOSS', status: COMPLETED }
       }),
       db.transaction.aggregate({
         _sum: { amount: true },
@@ -123,7 +123,12 @@ export async function GET(req: NextRequest) {
       },
       summary: {
         totalBalance: toAmount(user.balance),
-        totalAmount: toAmount(totalFlow._sum.amount),
+        totalAmount: toAmount(
+          toAmount(gameWinTotal._sum.amount) -
+            toAmount(gameLossTotal._sum.amount) +
+            toAmount(totalBonus._sum.amount) +
+            toAmount(withdrawTotal._sum.amount)
+        ),
         totalDepositAmount: toAmount(depositTotal._sum.amount),
         totalWithdrawAmount: toAmount(withdrawTotal._sum.amount),
         todayBonus: toAmount(todayBonus._sum.amount),

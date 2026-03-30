@@ -64,6 +64,8 @@ export default function AdminApprovalsPage() {
   const [statusFilter, setStatusFilter] = useState<'PENDING' | 'ALL'>('ALL');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   const load = useCallback(() => {
     const query = new URLSearchParams();
@@ -99,7 +101,7 @@ export default function AdminApprovalsPage() {
     return { pending, approved, rejected };
   }, [transactions]);
 
-  const updateStatus = async (id: string, status: 'COMPLETED' | 'FAILED') => {
+  const updateStatusRaw = async (id: string, status: 'COMPLETED' | 'FAILED') => {
     const response = await fetch(`/api/transactions/${id}`, {
       method: 'PUT',
       credentials: 'include',
@@ -108,10 +110,63 @@ export default function AdminApprovalsPage() {
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      setLoadError(data?.error || 'Unable to update status.');
+      return { ok: false, error: data?.error || 'Unable to update status.' };
+    }
+    return { ok: true as const };
+  };
+
+  const updateStatus = async (id: string, status: 'COMPLETED' | 'FAILED') => {
+    const result = await updateStatusRaw(id, status);
+    if (!result.ok) {
+      setLoadError(result.error);
       return;
     }
     setLoadError('');
+    load();
+  };
+
+  const pendingIds = useMemo(
+    () => transactions.filter((row) => row.status === 'PENDING').map((row) => row.id),
+    [transactions]
+  );
+
+  const effectiveSelectedIds = useMemo(
+    () => selectedIds.filter((id) => pendingIds.includes(id)),
+    [pendingIds, selectedIds]
+  );
+
+  const toggleSelectAll = () => {
+    if (!pendingIds.length) return;
+    setSelectedIds((prev) => {
+      if (prev.length === pendingIds.length) return [];
+      return [...pendingIds];
+    });
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+
+  const runBulk = async (status: 'COMPLETED' | 'FAILED') => {
+    if (!effectiveSelectedIds.length || bulkRunning) return;
+    setBulkRunning(true);
+    setLoadError('');
+
+    let success = 0;
+    let failed = 0;
+    for (const id of effectiveSelectedIds) {
+      const result = await updateStatusRaw(id, status);
+      if (result.ok) success += 1;
+      else failed += 1;
+    }
+
+    setBulkRunning(false);
+    setSelectedIds([]);
+    if (failed > 0) {
+      setLoadError(`Bulk ${status === 'COMPLETED' ? 'approve' : 'reject'} completed: ${success} success, ${failed} failed.`);
+    } else {
+      setLoadError('');
+    }
     load();
   };
 
@@ -164,6 +219,29 @@ export default function AdminApprovalsPage() {
             <p className="text-sm font-black text-red-700">{counts.rejected}</p>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <button
+            onClick={toggleSelectAll}
+            className="px-3 py-2 rounded-xl text-xs font-black bg-gray-100 text-gray-700"
+          >
+            {effectiveSelectedIds.length === pendingIds.length && pendingIds.length > 0 ? 'Unselect all pending' : 'Select all pending'}
+          </button>
+          <button
+            onClick={() => runBulk('COMPLETED')}
+            disabled={!effectiveSelectedIds.length || bulkRunning}
+            className="px-3 py-2 rounded-xl text-xs font-black bg-green-50 text-green-700 border border-green-100 disabled:opacity-50"
+          >
+            Bulk approve ({effectiveSelectedIds.length})
+          </button>
+          <button
+            onClick={() => runBulk('FAILED')}
+            disabled={!effectiveSelectedIds.length || bulkRunning}
+            className="px-3 py-2 rounded-xl text-xs font-black bg-red-50 text-red-700 border border-red-100 disabled:opacity-50"
+          >
+            Bulk reject ({effectiveSelectedIds.length})
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -176,12 +254,22 @@ export default function AdminApprovalsPage() {
           return (
             <div key={trx.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-gray-800">
-                    Rs {Number(trx.amount || 0).toLocaleString('en-US')}
-                  </p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{trx.type}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{new Date(trx.createdAt).toLocaleString()}</p>
+                <div className="flex items-start gap-2">
+                  {trx.status === 'PENDING' ? (
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={effectiveSelectedIds.includes(trx.id)}
+                      onChange={() => toggleSelected(trx.id)}
+                    />
+                  ) : null}
+                  <div>
+                    <p className="text-sm font-black text-gray-800">
+                      Rs {Number(trx.amount || 0).toLocaleString('en-US')}
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{trx.type}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{new Date(trx.createdAt).toLocaleString()}</p>
+                  </div>
                 </div>
                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${toStatusClass(trx.status)}`}>
                   {toStatusLabel(trx.status)}
@@ -234,8 +322,8 @@ export default function AdminApprovalsPage() {
                   {trx.type === 'DEPOSIT' && trx.meta?.screenshotUrl && (
                     <a href={trx.meta.screenshotUrl} target="_blank" rel="noreferrer" className="block mt-3">
                       <p className="text-[11px] font-bold text-gray-600 mb-2">Payment screenshot</p>
-                      <div className="relative w-36 h-36 rounded-lg overflow-hidden border border-gray-100">
-                        <Image src={trx.meta.screenshotUrl} alt="Payment proof" fill sizes="144px" className="object-cover" />
+                      <div className="relative w-full max-w-md aspect-[3/4] rounded-lg overflow-hidden border border-gray-100">
+                        <Image src={trx.meta.screenshotUrl} alt="Payment proof" fill sizes="(max-width: 768px) 100vw, 460px" className="object-contain bg-gray-50" />
                       </div>
                     </a>
                   )}
