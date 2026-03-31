@@ -19,7 +19,7 @@ if (typeof window !== 'undefined') {
   document.documentElement.style.fontSize = `${initialViewportWidth / 10}px`;
 }
 
-const elements = getElements();
+let elements = getElements();
 const state = {
   game: GAME_LIST[0],
   round: null,
@@ -37,6 +37,8 @@ const state = {
   clockIntervalId: null,
   pollingIntervalId: null,
   myBetsPollingIntervalId: null,
+  initRetryCount: 0,
+  initRetryTimerId: null,
   popup: {
     betType: 'COLOR',
     selection: 'RED',
@@ -155,6 +157,25 @@ function goHomeWithReload() {
   window.location.replace('/');
 }
 
+function refreshElements() {
+  elements = getElements();
+  return Boolean(elements?.root);
+}
+
+function scheduleInitializeRetry() {
+  if (state.initRetryTimerId) return;
+  if (state.initRetryCount >= 40) {
+    window.__WINGO_BOOTSTRAPPED__ = false;
+    return;
+  }
+
+  state.initRetryCount += 1;
+  state.initRetryTimerId = window.setTimeout(() => {
+    state.initRetryTimerId = null;
+    void initialize();
+  }, 120);
+}
+
 function cleanupBeforeLeave() {
   if (state.clockIntervalId) {
     window.clearInterval(state.clockIntervalId);
@@ -171,9 +192,16 @@ function cleanupBeforeLeave() {
     state.myBetsPollingIntervalId = null;
     state.myBetsPollingStarted = false;
   }
+  if (state.initRetryTimerId) {
+    window.clearTimeout(state.initRetryTimerId);
+    state.initRetryTimerId = null;
+  }
 
   restoreRootFontSize();
   clearWingoOpenReloadFlag();
+  state.initialized = false;
+  state.initRetryCount = 0;
+  window.__WINGO_BOOTSTRAPPED__ = false;
   document.body.classList.remove('van-overflow-hidden');
   if (elements.ruleDialog) elements.ruleDialog.style.display = 'none';
   if (elements.overlay) elements.overlay.style.display = 'none';
@@ -800,7 +828,16 @@ function bindVisibilityRefresh() {
 
 async function initialize() {
   if (state.initialized) return;
-  if (!elements.root) return;
+  if (!refreshElements()) {
+    scheduleInitializeRetry();
+    return;
+  }
+
+  if (state.initRetryTimerId) {
+    window.clearTimeout(state.initRetryTimerId);
+    state.initRetryTimerId = null;
+  }
+  state.initRetryCount = 0;
   state.initialized = true;
 
   applyBranding();

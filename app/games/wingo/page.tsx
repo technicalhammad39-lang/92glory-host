@@ -19,7 +19,7 @@ export default async function WingoPage() {
         }}
       />
       <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-      <script type="module" defer src="/wingo/js/main.js?v=20260331b" />
+      <script type="module" defer src="/wingo/js/main.js?v=20260331c" />
     </div>
   );
 }
