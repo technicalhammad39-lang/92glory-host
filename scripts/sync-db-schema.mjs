@@ -322,6 +322,43 @@ async function createFeatureTables() {
   );
 
   await ensureTable(
+    'SupportTicket',
+    `
+    CREATE TABLE \`SupportTicket\` (
+      \`id\` VARCHAR(191) NOT NULL,
+      \`userId\` VARCHAR(191) NOT NULL,
+      \`category\` VARCHAR(191) NOT NULL,
+      \`subject\` VARCHAR(191) NOT NULL,
+      \`details\` LONGTEXT NOT NULL,
+      \`status\` ENUM('OPEN','IN_PROGRESS','RESOLVED','REJECTED') NOT NULL DEFAULT 'OPEN',
+      \`adminResponse\` LONGTEXT NULL,
+      \`resolvedAt\` DATETIME(3) NULL,
+      \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      \`updatedAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (\`id\`),
+      KEY \`SupportTicket_userId_createdAt_idx\` (\`userId\`, \`createdAt\`),
+      KEY \`SupportTicket_status_updatedAt_idx\` (\`status\`, \`updatedAt\`),
+      CONSTRAINT \`SupportTicket_userId_fkey\` FOREIGN KEY (\`userId\`) REFERENCES \`User\`(\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    `
+  );
+
+  await ensureTable(
+    'SupportTicketAttachment',
+    `
+    CREATE TABLE \`SupportTicketAttachment\` (
+      \`id\` VARCHAR(191) NOT NULL,
+      \`ticketId\` VARCHAR(191) NOT NULL,
+      \`url\` VARCHAR(191) NOT NULL,
+      \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (\`id\`),
+      KEY \`SupportTicketAttachment_ticketId_createdAt_idx\` (\`ticketId\`, \`createdAt\`),
+      CONSTRAINT \`SupportTicketAttachment_ticketId_fkey\` FOREIGN KEY (\`ticketId\`) REFERENCES \`SupportTicket\`(\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    `
+  );
+
+  await ensureTable(
     'PartnerRewardRule',
     `
     CREATE TABLE \`PartnerRewardRule\` (

@@ -10,13 +10,6 @@ const WINGO_TX_TIMEOUT_MS = Number(process.env.WINGO_TX_TIMEOUT_MS || 120000);
 const WINGO_TX_MAX_WAIT_MS = Number(process.env.WINGO_TX_MAX_WAIT_MS || 10000);
 const LOCK_ROUNDS_INTERVAL_MS = Number(process.env.WINGO_LOCK_INTERVAL_MS || 3000);
 
-const ONE_MINUTE_RESULT_SEQUENCE = [
-  7, 2, 5, 0, 9, 3, 6, 1, 8, 4,
-  7, 0, 2, 5, 9, 3, 6, 1, 8, 4,
-  7, 2, 5, 0, 9, 3, 6, 1, 8, 4,
-  7, 0, 2, 5, 9, 3, 6, 1, 8, 4,
-  7, 2, 5, 0, 9, 3, 6, 1, 8, 4
-];
 
 export const WINGO_ALLOWED_DURATIONS = [30, 60, 180, 300] as const;
 
@@ -115,24 +108,7 @@ export function getResultMeta(resultNumber: number) {
   };
 }
 
-function extractIssuePeriodIndex(issueNumber: string) {
-  const digits = String(issueNumber || '').replace(/\D/g, '');
-  const suffix = digits.slice(-5);
-  const parsed = Number(suffix);
-  if (Number.isInteger(parsed) && parsed > 0) {
-    return parsed;
-  }
-
-  const digest = crypto.createHash('sha1').update(issueNumber).digest('hex');
-  return (parseInt(digest.slice(0, 6), 16) % 100000) + 1;
-}
-
 function deterministicResult(issueNumber: string, durationSec: number) {
-  if (durationSec === 60) {
-    const periodIndex = extractIssuePeriodIndex(issueNumber);
-    return ONE_MINUTE_RESULT_SEQUENCE[(periodIndex - 1) % ONE_MINUTE_RESULT_SEQUENCE.length];
-  }
-
   const digest = crypto.createHash('sha256').update(`${issueNumber}:${durationSec}:${RESULT_SALT}`).digest('hex');
   const intValue = parseInt(digest.slice(0, 8), 16);
   return intValue % 10;

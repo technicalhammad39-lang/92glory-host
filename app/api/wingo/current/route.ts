@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/api-helpers';
 import { db, isDatabaseReady } from '@/lib/db';
-import { ensureCurrentRound, getRoundWindow, isSupportedDuration } from '@/lib/wingo-engine';
+import { ensureCurrentRound, isSupportedDuration } from '@/lib/wingo-engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,28 +12,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unsupported duration.' }, { status: 400 });
   }
 
-  const fallbackWindow = getRoundWindow(durationSec, new Date());
-  const remainingSeconds = Math.max(0, Math.ceil((new Date(fallbackWindow.endAt).getTime() - Date.now()) / 1000));
-  const bettingOpen = new Date() < fallbackWindow.lockAt;
-
   if (!(await isDatabaseReady())) {
-    return NextResponse.json({
-      serverTime: new Date().toISOString(),
-      round: {
-        id: `fallback-${fallbackWindow.issueNumber}`,
-        issueNumber: fallbackWindow.issueNumber,
-        durationSec,
-        status: bettingOpen ? 'OPEN' : 'LOCKED',
-        startsAt: fallbackWindow.startAt,
-        lockAt: fallbackWindow.lockAt,
-        endAt: fallbackWindow.endAt,
-        remainingSeconds,
-        isBettingOpen: bettingOpen
-      },
-      latestResult: null,
-      user: null,
-      fallback: true
-    });
+    return NextResponse.json({ error: 'Wingo service unavailable.' }, { status: 503 });
   }
 
   try {
@@ -90,22 +70,6 @@ export async function GET(req: NextRequest) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('/api/wingo/current failed:', error);
     }
-    return NextResponse.json({
-      serverTime: new Date().toISOString(),
-      round: {
-        id: `fallback-${fallbackWindow.issueNumber}`,
-        issueNumber: fallbackWindow.issueNumber,
-        durationSec,
-        status: bettingOpen ? 'OPEN' : 'LOCKED',
-        startsAt: fallbackWindow.startAt,
-        lockAt: fallbackWindow.lockAt,
-        endAt: fallbackWindow.endAt,
-        remainingSeconds,
-        isBettingOpen: bettingOpen
-      },
-      latestResult: null,
-      user: null,
-      fallback: true
-    });
+    return NextResponse.json({ error: 'Wingo service unavailable.' }, { status: 503 });
   }
 }

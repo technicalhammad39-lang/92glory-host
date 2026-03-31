@@ -12,6 +12,11 @@ const PENDING_SETTLEMENTS_KEY = 'wingo_pending_settlements';
 const MAX_QTY = 9999;
 const originalRootFontSize = document.documentElement.style.fontSize;
 
+if (typeof window !== 'undefined') {
+  const initialViewportWidth = Math.min(window.innerWidth || 450, 450);
+  document.documentElement.style.fontSize = `${initialViewportWidth / 10}px`;
+}
+
 const elements = getElements();
 const state = {
   game: GAME_LIST[0],
@@ -157,11 +162,6 @@ function bindResponsiveRoot() {
   window.addEventListener('pagehide', restoreRootFontSize);
   window.addEventListener('beforeunload', restoreRootFontSize);
   window.addEventListener('popstate', cleanupBeforeLeave);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      cleanupBeforeLeave();
-    }
-  });
   document.addEventListener(
     'click',
     (event) => {
@@ -742,11 +742,22 @@ function startMyBetsPolling() {
 }
 
 function bindVisibilityRefresh() {
+  const refresh = () => {
+    setRootFontSize();
+    startClockLoop();
+    startPolling();
+    startMyBetsPolling();
+    void syncCurrentRound(true);
+  };
+
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      void syncCurrentRound(true);
-    }
+    if (document.hidden) return;
+    refresh();
   });
+  window.addEventListener('pageshow', () => {
+    refresh();
+  });
+  window.addEventListener('focus', refresh);
 }
 
 async function bootstrapBalance() {

@@ -16,6 +16,7 @@ import {
   Wallet,
   FileText,
   CircleDot,
+  MessageSquare,
   Menu,
   X,
   LogOut
@@ -34,6 +35,7 @@ const adminNavItems = [
   { name: 'Branding', icon: Settings, path: '/admincts/branding' },
   { name: 'Users', icon: Users, path: '/admincts/users' },
   { name: 'Approvals', icon: Wallet, path: '/admincts/approvals' },
+  { name: 'Support Tickets', icon: MessageSquare, path: '/admincts/support-tickets' },
   { name: 'Content Pages', icon: FileText, path: '/admincts/content-pages' },
   { name: 'Wingo Control', icon: CircleDot, path: '/admincts/wingo' }
 ];

@@ -58,34 +58,42 @@ enum NotificationType {
   SYSTEM
 }
 
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
 model User {
-  id                   String                 @id @default(cuid())
-  name                 String?
-  phone                String?                @unique
-  email                String?                @unique
-  uid                  String?                @unique
-  inviteCode           String                 @unique
-  password             String
-  balance              Float                  @default(0.0)
-  vipLevel             Int                    @default(0)
-  exp                  Int                    @default(0)
-  role                 String                 @default("USER") // USER or ADMIN
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  transactions         Transaction[]
-  wingoBets            WingoBet[]
-  paymentAccounts      PaymentAccount[]
-  giftClaims           GiftClaim[]
-  attendanceRecords    AttendanceRecord[]
-  attendanceClaims     AttendanceClaim[]
-  taskProgresses       ActivityTaskProgress[]
-  taskClaims           ActivityTaskClaim[]
-  rebateClaims         RebateClaim[]
-  jackpotClaims        JackpotClaim[]
-  notifications        Notification[]
-  downlines            User[]                 @relation("UserToDownlines")
-  uplineId             String?
-  upline               User?                  @relation("UserToDownlines", fields: [uplineId], references: [id])
+  id                String                 @id @default(cuid())
+  name              String?
+  phone             String?                @unique
+  email             String?                @unique
+  uid               String?                @unique
+  inviteCode        String                 @unique
+  password          String
+  balance           Float                  @default(0.0)
+  vipLevel          Int                    @default(0)
+  exp               Int                    @default(0)
+  role              String                 @default("USER") // USER or ADMIN
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  transactions      Transaction[]
+  wingoBets         WingoBet[]
+  paymentAccounts   PaymentAccount[]
+  giftClaims        GiftClaim[]
+  attendanceRecords AttendanceRecord[]
+  attendanceClaims  AttendanceClaim[]
+  taskProgresses    ActivityTaskProgress[]
+  taskClaims        ActivityTaskClaim[]
+  rebateClaims      RebateClaim[]
+  jackpotClaims     JackpotClaim[]
+  notifications     Notification[]
+  supportTickets    SupportTicket[]
+  downlines         User[]                 @relation("UserToDownlines")
+  uplineId          String?
+  upline            User?                  @relation("UserToDownlines", fields: [uplineId], references: [id])
 }
 
 model PaymentAccount {
@@ -130,14 +138,14 @@ model Banner {
 }
 
 model Activity {
-  id        String   @id @default(cuid())
-  title     String
+  id          String   @id @default(cuid())
+  title       String
   description String?
-  image     String
-  type      String
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  image       String
+  type        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 }
 
 model Popup {
@@ -187,7 +195,7 @@ model VipLevel {
 model VipBenefit {
   id             String   @id @default(cuid())
   level          Int
-  group          String   // LEVEL or MY
+  group          String // LEVEL or MY
   title          String
   description    String?
   image          String
@@ -198,12 +206,12 @@ model VipBenefit {
 }
 
 model SiteConfig {
-  id                    String   @id @default(cuid())
-  brandName             String   @default("92 Glory0")
-  announcement          String?
-  announcementButton    String?  @default("Detail")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  brandName          String   @default("92 Glory0")
+  announcement       String?
+  announcementButton String?  @default("Detail")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model ContentPage {
@@ -217,58 +225,58 @@ model ContentPage {
 }
 
 model PromotionSetting {
-  id                        String   @id @default(cuid())
-  commissionRate            Float    @default(0.1)
-  rebateRate                Float    @default(0.15)
-  customerService           String?
-  partnerRewardCap          Float    @default(10000)
-  invitationBaseUrl         String?
-  invitationRulesText       String?
-  promotionRulesText        String?
-  rebateRatioRulesText      String?
-  updatedAt                 DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  commissionRate       Float    @default(0.1)
+  rebateRate           Float    @default(0.15)
+  customerService      String?
+  partnerRewardCap     Float    @default(10000)
+  invitationBaseUrl    String?
+  invitationRulesText  String?
+  promotionRulesText   String?
+  rebateRatioRulesText String?
+  updatedAt            DateTime @updatedAt
 }
 
 model GiftCode {
-  id             String    @id @default(cuid())
-  code           String    @unique
+  id             String      @id @default(cuid())
+  code           String      @unique
   rewardAmount   Float
-  maxTotalClaims Int       @default(1)
-  perUserLimit   Int       @default(1)
+  maxTotalClaims Int         @default(1)
+  perUserLimit   Int         @default(1)
   expiresAt      DateTime?
-  isActive       Boolean   @default(true)
-  totalClaimed   Int       @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  isActive       Boolean     @default(true)
+  totalClaimed   Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
   claims         GiftClaim[]
 }
 
 model GiftClaim {
-  id        String          @id @default(cuid())
+  id         String          @id @default(cuid())
   giftCodeId String
-  giftCode  GiftCode        @relation(fields: [giftCodeId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Float
-  status    GiftClaimStatus @default(SUCCESS)
-  createdAt DateTime        @default(now())
+  giftCode   GiftCode        @relation(fields: [giftCodeId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount     Float
+  status     GiftClaimStatus @default(SUCCESS)
+  createdAt  DateTime        @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([giftCodeId, createdAt(sort: Desc)])
 }
 
 model AttendanceSetting {
-  id                    String   @id @default(cuid())
-  minDepositAmount      Float    @default(500)
-  oneTimeOnly           Boolean  @default(false)
-  day1Reward            Float    @default(15)
-  day2Reward            Float    @default(25)
-  day3Reward            Float    @default(45)
-  day4Reward            Float    @default(85)
-  day5Reward            Float    @default(110)
-  day6Reward            Float    @default(140)
-  day7Reward            Float    @default(180)
-  updatedAt             DateTime @updatedAt
+  id               String   @id @default(cuid())
+  minDepositAmount Float    @default(500)
+  oneTimeOnly      Boolean  @default(false)
+  day1Reward       Float    @default(15)
+  day2Reward       Float    @default(25)
+  day3Reward       Float    @default(45)
+  day4Reward       Float    @default(85)
+  day5Reward       Float    @default(110)
+  day6Reward       Float    @default(140)
+  day7Reward       Float    @default(180)
+  updatedAt        DateTime @updatedAt
 }
 
 model AttendanceRecord {
@@ -297,100 +305,100 @@ model AttendanceClaim {
 }
 
 model ActivityTask {
-  id            String             @id @default(cuid())
-  title         String
-  description   String
-  gameType      String             @default("SLOT")
-  period        ActivityTaskPeriod @default(DAILY)
-  targetAmount  Float
-  rewardAmount  Float
-  order         Int                @default(0)
-  isActive      Boolean            @default(true)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  progresses    ActivityTaskProgress[]
-  claims        ActivityTaskClaim[]
+  id           String                 @id @default(cuid())
+  title        String
+  description  String
+  gameType     String                 @default("SLOT")
+  period       ActivityTaskPeriod     @default(DAILY)
+  targetAmount Float
+  rewardAmount Float
+  order        Int                    @default(0)
+  isActive     Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  progresses   ActivityTaskProgress[]
+  claims       ActivityTaskClaim[]
 }
 
 model ActivityTaskProgress {
-  id             String   @id @default(cuid())
-  taskId          String
-  task            ActivityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  progressAmount  Float    @default(0)
-  periodKey       String
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
+  id             String       @id @default(cuid())
+  taskId         String
+  task           ActivityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progressAmount Float        @default(0)
+  periodKey      String
+  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime     @default(now())
 
   @@unique([taskId, userId, periodKey])
   @@index([userId, periodKey])
 }
 
 model ActivityTaskClaim {
-  id         String   @id @default(cuid())
-  taskId      String
-  task        ActivityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  periodKey   String
-  amount      Float
-  createdAt   DateTime @default(now())
+  id        String       @id @default(cuid())
+  taskId    String
+  task      ActivityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodKey String
+  amount    Float
+  createdAt DateTime     @default(now())
 
   @@unique([taskId, userId, periodKey])
   @@index([userId, createdAt(sort: Desc)])
 }
 
 model RebateConfig {
-  id          String   @id @default(cuid())
-  gameType    String
-  title       String
-  rate        Float
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  gameType  String
+  title     String
+  rate      Float
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([gameType])
 }
 
 model RebateClaim {
-  id            String            @id @default(cuid())
-  userId        String
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gameType      String            @default("ALL")
-  periodKey     String
-  betAmount     Float             @default(0)
-  rebateRate    Float             @default(0)
-  rebateAmount  Float             @default(0)
-  status        RebateClaimStatus @default(CLAIMED)
-  createdAt     DateTime          @default(now())
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType     String            @default("ALL")
+  periodKey    String
+  betAmount    Float             @default(0)
+  rebateRate   Float             @default(0)
+  rebateAmount Float             @default(0)
+  status       RebateClaimStatus @default(CLAIMED)
+  createdAt    DateTime          @default(now())
 
   @@unique([userId, gameType, periodKey])
   @@index([userId, createdAt(sort: Desc)])
 }
 
 model JackpotSetting {
-  id                  String   @id @default(cuid())
-  minBetAmount        Float    @default(10000)
-  rewardAmount        Float    @default(180)
-  validDays           Int      @default(7)
-  isActive            Boolean  @default(true)
-  updatedAt           DateTime @updatedAt
+  id           String   @id @default(cuid())
+  minBetAmount Float    @default(10000)
+  rewardAmount Float    @default(180)
+  validDays    Int      @default(7)
+  isActive     Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
 }
 
 model JackpotClaim {
-  id              String            @id @default(cuid())
-  userId          String
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  periodKey       String
-  eligibleAmount  Float             @default(0)
-  rewardAmount    Float
-  status          JackpotClaimStatus @default(ELIGIBLE)
-  eligibleAt      DateTime          @default(now())
-  expiresAt       DateTime?
-  claimedAt       DateTime?
-  createdAt       DateTime          @default(now())
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodKey      String
+  eligibleAmount Float              @default(0)
+  rewardAmount   Float
+  status         JackpotClaimStatus @default(ELIGIBLE)
+  eligibleAt     DateTime           @default(now())
+  expiresAt      DateTime?
+  claimedAt      DateTime?
+  createdAt      DateTime           @default(now())
 
   @@unique([userId, periodKey])
   @@index([userId, createdAt(sort: Desc)])
@@ -409,28 +417,56 @@ model Notification {
   @@index([userId, createdAt(sort: Desc)])
 }
 
+model SupportTicket {
+  id            String                    @id @default(cuid())
+  userId        String
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      String
+  subject       String
+  details       String
+  status        SupportTicketStatus       @default(OPEN)
+  adminResponse String?
+  resolvedAt    DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  attachments   SupportTicketAttachment[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, updatedAt(sort: Desc)])
+}
+
+model SupportTicketAttachment {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  url       String
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt(sort: Asc)])
+}
+
 model PartnerRewardRule {
-  id             String   @id @default(cuid())
-  stage          String
-  minAmount      Float
-  maxAmount      Float
-  minTurnover    Float
-  bonusAmount    Float
-  order          Int      @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          String   @id @default(cuid())
+  stage       String
+  minAmount   Float
+  maxAmount   Float
+  minTurnover Float
+  bonusAmount Float
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model RebateRatio {
-  id          String   @id @default(cuid())
-  category    String
-  level       Int
-  depth       Int
-  ratio       Float
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  category  String
+  level     Int
+  depth     Int
+  ratio     Float
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([category, level, depth])
   @@index([category, level, order])
@@ -448,25 +484,25 @@ model CustomerServiceLink {
 }
 
 model WingoRound {
-  id                String           @id @default(cuid())
-  issueNumber       String           @unique
-  durationSec       Int
-  status            WingoRoundStatus @default(OPEN)
-  startsAt          DateTime
-  lockAt            DateTime
-  endAt             DateTime
+  id                 String           @id @default(cuid())
+  issueNumber        String           @unique
+  durationSec        Int
+  status             WingoRoundStatus @default(OPEN)
+  startsAt           DateTime
+  lockAt             DateTime
+  endAt              DateTime
   forcedResultNumber Int?
-  resultNumber      Int?
-  resultColor       String?
-  resultSize        String?
-  resultMode        WingoResultMode?
-  settledAt         DateTime?
-  totalBetAmount    Float            @default(0.0)
-  totalPayoutAmount Float            @default(0.0)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  bets              WingoBet[]
-  result            WingoResult?
+  resultNumber       Int?
+  resultColor        String?
+  resultSize         String?
+  resultMode         WingoResultMode?
+  settledAt          DateTime?
+  totalBetAmount     Float            @default(0.0)
+  totalPayoutAmount  Float            @default(0.0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  bets               WingoBet[]
+  result             WingoResult?
 
   @@index([durationSec, startsAt(sort: Desc)])
   @@index([durationSec, status, endAt])
@@ -474,23 +510,23 @@ model WingoRound {
 }
 
 model WingoBet {
-  id               String         @id @default(cuid())
-  roundId          String
-  round            WingoRound     @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  issueNumber      String
-  userId           String
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  betType          WingoBetType
-  selection        String
-  amount           Float
-  payoutMultiplier Float
+  id                 String         @id @default(cuid())
+  roundId            String
+  round              WingoRound     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  issueNumber        String
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  betType            WingoBetType
+  selection          String
+  amount             Float
+  payoutMultiplier   Float
   potentialWinAmount Float
-  status           WingoBetStatus @default(PENDING)
-  resultNumber     Int?
-  winAmount        Float          @default(0.0)
-  settledAt        DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  status             WingoBetStatus @default(PENDING)
+  resultNumber       Int?
+  winAmount          Float          @default(0.0)
+  settledAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([roundId, status])

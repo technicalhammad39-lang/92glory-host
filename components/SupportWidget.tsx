@@ -93,7 +93,7 @@ export function SupportWidget() {
     }
   };
 
-  if (pathname?.startsWith('/games/wingo')) {
+  if (pathname?.startsWith('/games/wingo') || pathname?.startsWith('/account/customer-service')) {
     return null;
   }
 

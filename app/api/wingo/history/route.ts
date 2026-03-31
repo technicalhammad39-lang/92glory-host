@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!(await isDatabaseReady())) {
-    return NextResponse.json({ rounds: [], fallback: true });
+    return NextResponse.json({ error: 'Wingo service unavailable.' }, { status: 503 });
   }
 
   try {
@@ -49,6 +49,6 @@ export async function GET(req: NextRequest) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('/api/wingo/history failed:', error);
     }
-    return NextResponse.json({ rounds: [], fallback: true });
+    return NextResponse.json({ error: 'Wingo service unavailable.' }, { status: 503 });
   }
 }
