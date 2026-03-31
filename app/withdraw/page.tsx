@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Header } from '@/components/Header';
 import { RefreshCw, ChevronRight, Copy, X } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { ActionResultModal } from '@/components/ActionResultModal';
 
 type MethodId = 'JAZZCASH' | 'EASYPAISA' | 'USDT';
 
@@ -61,6 +62,17 @@ export default function WithdrawPage() {
   const [accountName, setAccountName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [usdtAddress, setUsdtAddress] = useState('');
+  const [resultModal, setResultModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   const availableBalance = Number(user?.balance || 0);
   const amountNumber = Number(amount || 0);
@@ -194,6 +206,15 @@ export default function WithdrawPage() {
     if (!token) return;
     setMessage('');
 
+    const openResult = (type: 'success' | 'error', title: string, nextMessage: string) => {
+      setResultModal({
+        isOpen: true,
+        type,
+        title,
+        message: nextMessage
+      });
+    };
+
     if (!selectedAccount) {
       setMessage('Please add account for selected channel.');
       openAccountModal();
@@ -229,11 +250,14 @@ export default function WithdrawPage() {
     setSubmitting(false);
 
     if (!response.ok) {
-      setMessage(data?.error || 'Unable to submit withdraw request.');
+      const errorMessage = data?.error || 'Unable to submit withdraw request.';
+      setMessage(errorMessage);
+      openResult('error', 'Request Failed', errorMessage);
       return;
     }
 
     setMessage('Withdraw request submitted. Waiting for admin approval.');
+    openResult('success', 'Request Submitted', 'Withdraw request submitted. Waiting for admin approval.');
     setAmount('');
     await fetchTransactions();
     await fetchProfile();
@@ -437,6 +461,14 @@ export default function WithdrawPage() {
           </div>
         </div>
       )}
+
+      <ActionResultModal
+        isOpen={resultModal.isOpen}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+        onClose={() => setResultModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

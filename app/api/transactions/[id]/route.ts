@@ -75,8 +75,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Only deposit transactions can be updated.' }, { status: 400 });
   }
 
-  if (transaction.status !== 'PENDING') {
-    return NextResponse.json({ error: 'Only pending deposits can be updated.' }, { status: 400 });
+  const meta = parseMeta(transaction.meta);
+  if (transaction.status === 'PENDING') {
+    if (meta?.screenshotUrl && meta?.customerSubmittedAt) {
+      return NextResponse.json({ transaction: serializeTransaction(transaction) });
+    }
+  }
+
+  const isLegacyPendingWithoutProof = transaction.status === 'PENDING' && !meta?.screenshotUrl;
+  if (transaction.status !== 'PENDING_UPLOAD' && !isLegacyPendingWithoutProof) {
+    return NextResponse.json({ error: 'Only draft deposits can be submitted.' }, { status: 400 });
   }
 
   const screenshotUrl = String(body?.screenshotUrl || '').trim();
@@ -87,10 +95,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Payment screenshot is required.' }, { status: 400 });
   }
 
-  const meta = parseMeta(transaction.meta);
   const updated = await db.transaction.update({
     where: { id: transaction.id },
     data: {
+      status: 'PENDING',
       meta: JSON.stringify({
         ...meta,
         screenshotUrl,
@@ -115,6 +123,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!['COMPLETED', 'FAILED'].includes(nextStatus)) {
     return NextResponse.json({ error: 'Invalid status.' }, { status: 400 });
+  }
+
+  if (nextStatus === 'COMPLETED') {
+    const preflight = await db.transaction.findUnique({
+      where: { id },
+      select: { type: true, status: true, meta: true }
+    });
+    if (preflight?.type === 'DEPOSIT' && preflight.status === 'PENDING') {
+      const preflightMeta = parseMeta(preflight.meta);
+      if (!preflightMeta?.screenshotUrl) {
+        return NextResponse.json({ error: 'Payment screenshot is required before approval.' }, { status: 400 });
+      }
+    }
   }
 
   const result = await withTxRetry(async (tx) => {
@@ -163,13 +184,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     let finalStatus = nextStatus;
 
+    const existingMeta = parseMeta(existing.meta);
+    const withdrawDeductedOnSubmit =
+      existing.type === 'WITHDRAW' &&
+      (existingMeta?.balanceDeductedOnSubmit === true || existingMeta?.source === 'withdraw_request_v2');
+
     if (nextStatus === 'COMPLETED') {
       if (existing.type === 'DEPOSIT') {
         await tx.user.update({
           where: { id: existing.userId },
           data: { balance: { increment: existing.amount } }
         });
-      } else if (existing.type === 'WITHDRAW') {
+      } else if (existing.type === 'WITHDRAW' && !withdrawDeductedOnSubmit) {
         const debited = await tx.user.updateMany({
           where: { id: existing.userId, balance: { gte: existing.amount } },
           data: { balance: { decrement: existing.amount } }
@@ -179,6 +205,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           finalStatus = 'FAILED';
         }
       }
+    }
+
+    if (nextStatus === 'FAILED' && existing.type === 'WITHDRAW' && withdrawDeductedOnSubmit) {
+      await tx.user.update({
+        where: { id: existing.userId },
+        data: { balance: { increment: existing.amount } }
+      });
     }
 
     return tx.transaction.update({

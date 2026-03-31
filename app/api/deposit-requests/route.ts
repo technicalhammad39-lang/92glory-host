@@ -77,7 +77,10 @@ export async function GET(req: NextRequest) {
     const limitRaw = Number(url.searchParams.get('limit') || 0);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 100) : undefined;
 
-    const where: any = { type: 'DEPOSIT' };
+    const where: any = {
+      type: 'DEPOSIT',
+      NOT: { status: 'PENDING_UPLOAD' }
+    };
     if (!admin && user) where.userId = user.id;
     if (status === 'PENDING') where.status = 'PENDING';
     if (status === 'APPROVED') where.status = 'COMPLETED';

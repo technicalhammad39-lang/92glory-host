@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
 
 type TransactionRow = {
   id: string;
@@ -54,6 +55,7 @@ function toStatusClass(status: string) {
 }
 
 export default function AdminApprovalsPage() {
+  const { token } = useAuthStore();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [typeFilter, setTypeFilter] = useState<'DEPOSIT' | 'WITHDRAW'>(() => {
     if (typeof window === 'undefined') return 'DEPOSIT';
@@ -72,7 +74,15 @@ export default function AdminApprovalsPage() {
     query.set('type', typeFilter);
     if (statusFilter !== 'ALL') query.set('status', statusFilter);
 
-    fetch(`/api/transactions?${query.toString()}`, { credentials: 'include', cache: 'no-store' })
+    fetch(`/api/transactions?${query.toString()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`
+          }
+        : undefined
+    })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -88,7 +98,7 @@ export default function AdminApprovalsPage() {
         setLoadError(error?.message || 'Unable to load approvals.');
         setTransactions([]);
       });
-  }, [typeFilter, statusFilter]);
+  }, [typeFilter, statusFilter, token]);
 
   useEffect(() => {
     load();
@@ -105,7 +115,10 @@ export default function AdminApprovalsPage() {
     const response = await fetch(`/api/transactions/${id}`, {
       method: 'PUT',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ status })
     });
     if (!response.ok) {
@@ -310,11 +323,11 @@ export default function AdminApprovalsPage() {
                     ) : (
                       <>
                         <p className="text-gray-500">Account title</p>
-                        <p className="text-gray-700 font-semibold text-right break-all">{trx.meta?.accountTitle || '-'}</p>
+                        <p className="text-[#1f2f59] font-black text-right break-all text-[12px]">{trx.meta?.accountTitle || '-'}</p>
                         <p className="text-gray-500">Account no/address</p>
-                        <p className="text-gray-700 font-semibold text-right break-all">{trx.meta?.accountNumber || trx.meta?.usdtAddress || '-'}</p>
+                        <p className="text-[#1f2f59] font-black text-right break-all text-[12px]">{trx.meta?.accountNumber || trx.meta?.usdtAddress || '-'}</p>
                         <p className="text-gray-500">Account name</p>
-                        <p className="text-gray-700 font-semibold text-right break-all">{trx.meta?.accountName || '-'}</p>
+                        <p className="text-[#1f2f59] font-black text-right break-all text-[12px]">{trx.meta?.accountName || '-'}</p>
                       </>
                     )}
                   </div>
@@ -322,7 +335,7 @@ export default function AdminApprovalsPage() {
                   {trx.type === 'DEPOSIT' && trx.meta?.screenshotUrl && (
                     <a href={trx.meta.screenshotUrl} target="_blank" rel="noreferrer" className="block mt-3">
                       <p className="text-[11px] font-bold text-gray-600 mb-2">Payment screenshot</p>
-                      <div className="relative w-full max-w-md aspect-[3/4] rounded-lg overflow-hidden border border-gray-100">
+                      <div className="relative w-full max-w-md aspect-[3/4] rounded-lg overflow-hidden border border-gray-100 bg-white">
                         <Image src={trx.meta.screenshotUrl} alt="Payment proof" fill sizes="(max-width: 768px) 100vw, 460px" className="object-contain bg-gray-50" />
                       </div>
                     </a>

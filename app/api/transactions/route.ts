@@ -20,6 +20,10 @@ function serializeTransaction<T extends { meta: string | null }>(transaction: T)
   };
 }
 
+function shouldHideTransaction(transaction: { type: string; status: string }) {
+  return transaction.type === 'DEPOSIT' && transaction.status === 'PENDING_UPLOAD';
+}
+
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin(req);
   const user = admin ? null : await getAuthUser(req);
@@ -57,7 +61,8 @@ export async function GET(req: NextRequest) {
     }
   });
 
-  return NextResponse.json({ transactions: transactions.map(serializeTransaction) });
+  const visibleTransactions = transactions.filter((transaction) => !shouldHideTransaction(transaction));
+  return NextResponse.json({ transactions: visibleTransactions.map(serializeTransaction) });
 }
 
 export async function POST(req: NextRequest) {
@@ -128,7 +133,8 @@ export async function POST(req: NextRequest) {
         accountTitle: account.accountTitle,
         accountNumber: account.accountNumber,
         accountName: account.accountName,
-        usdtAddress: account.usdtAddress
+        usdtAddress: account.usdtAddress,
+        balanceDeductedOnSubmit: true
       };
 
       const transaction = await withTxRetry(async (tx) => {
@@ -140,22 +146,20 @@ export async function POST(req: NextRequest) {
           throw new Error('Unauthorized');
         }
 
-        const pending = await tx.transaction.aggregate({
-          where: {
-            userId: user.id,
-            type: 'WITHDRAW',
-            status: { in: ['PENDING', 'PROCESSING'] }
-          },
-          _sum: { amount: true }
-        });
-        const pendingAmount = Number(pending._sum.amount || 0);
-        const available = Number(freshUser.balance || 0) - pendingAmount;
-
-        if (available < amount) {
+        if (Number(freshUser.balance || 0) < amount) {
           throw new Error('Insufficient balance.');
         }
 
-        return tx.transaction.create({
+        const debited = await tx.user.updateMany({
+          where: { id: user.id, balance: { gte: amount } },
+          data: { balance: { decrement: amount } }
+        });
+
+        if (!debited.count) {
+          throw new Error('Insufficient balance.');
+        }
+
+        const transaction = await tx.transaction.create({
           data: {
             userId: user.id,
             type,
@@ -164,6 +168,8 @@ export async function POST(req: NextRequest) {
             meta: JSON.stringify(meta || {})
           }
         });
+
+        return transaction;
       });
 
       return NextResponse.json({ transaction: serializeTransaction(transaction) });
@@ -174,7 +180,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         type,
         amount,
-        status: 'PENDING',
+        status: 'PENDING_UPLOAD',
         meta: JSON.stringify(meta || {})
       }
     });

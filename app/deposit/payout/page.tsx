@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Suspense } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Copy, Upload } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import { getPaymentChannel, isPaymentMethodId } from '@/lib/payment-channels';
+import { ActionResultModal } from '@/components/ActionResultModal';
 
 function formatAmount(value: number) {
   return `Rs ${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -23,6 +23,7 @@ type TransactionLike = {
     merchantAccountNumber?: string;
     merchantAccountName?: string;
     screenshotUrl?: string;
+    customerSubmittedAt?: string;
   } | null;
 };
 
@@ -38,6 +39,19 @@ function DepositPayoutContent() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [resultModal, setResultModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    redirectToHistory: boolean;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+    redirectToHistory: false
+  });
 
   useEffect(() => {
     if (!token) {
@@ -71,7 +85,9 @@ function DepositPayoutContent() {
   }, [token, orderId, router]);
 
   const method = String(transaction?.meta?.method || '').toUpperCase();
-  const isPending = String(transaction?.status || '').toUpperCase() === 'PENDING';
+  const statusUpper = String(transaction?.status || '').toUpperCase();
+  const isPendingUpload = statusUpper === 'PENDING_UPLOAD';
+  const isSubmitted = statusUpper === 'PENDING' || statusUpper === 'PROCESSING';
   const channel = useMemo(() => {
     if (isPaymentMethodId(method)) return getPaymentChannel(method);
     return null;
@@ -89,11 +105,26 @@ function DepositPayoutContent() {
     }
   };
 
+  const openResult = (
+    type: 'success' | 'error',
+    title: string,
+    nextMessage: string,
+    redirectToHistory = false
+  ) => {
+    setResultModal({
+      isOpen: true,
+      type,
+      title,
+      message: nextMessage,
+      redirectToHistory
+    });
+  };
+
   const submitDeposit = async () => {
     if (!token || !transaction) return;
 
     if (!proofFile) {
-      setMessage('Payment screenshot is required.');
+      openResult('error', 'Submit Failed', 'Payment screenshot is required.');
       return;
     }
 
@@ -132,12 +163,27 @@ function DepositPayoutContent() {
         throw new Error(patchData?.error || 'Unable to submit deposit.');
       }
 
-      setMessage('Deposit submitted successfully. Waiting for admin approval.');
-      setTimeout(() => {
-        router.push('/deposit-history');
-      }, 900);
+      openResult('success', 'Request Submitted', 'Deposit submitted successfully. Waiting for admin approval.', true);
     } catch (error: any) {
-      setMessage(error?.message || 'Unable to submit deposit.');
+      // if network dropped after successful write, verify final state before showing error
+      try {
+        const verifyRes = await fetch(`/api/transactions/${encodeURIComponent(transaction.id)}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        const verifiedMeta = verifyData?.transaction?.meta || {};
+        const alreadySubmitted = Boolean(verifiedMeta?.screenshotUrl && verifiedMeta?.customerSubmittedAt);
+        if (verifyRes.ok && alreadySubmitted) {
+          openResult('success', 'Request Submitted', 'Deposit submitted successfully. Waiting for admin approval.', true);
+          return;
+        }
+      } catch {
+        // ignore verify check errors
+      }
+
+      openResult('error', 'Submit Failed', error?.message || 'Unable to submit deposit.');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,7 +201,10 @@ function DepositPayoutContent() {
             <p className="text-xs text-gray-500">Total amount</p>
             <p className="text-lg font-black text-accent-purple">{formatAmount(transaction?.amount || 0)}</p>
           </div>
-          {transaction && !isPending && (
+          {transaction && isSubmitted && (
+            <p className="text-[11px] font-bold text-gray-500 mt-2">This order is already submitted for admin review.</p>
+          )}
+          {transaction && !isPendingUpload && !isSubmitted && (
             <p className="text-[11px] font-bold text-gray-500 mt-2">This order is already {String(transaction.status).toLowerCase()}.</p>
           )}
         </div>
@@ -225,7 +274,7 @@ function DepositPayoutContent() {
         </div>
 
         <div className="bg-[#FDF6FF] rounded-2xl border border-[#E9CCF8] p-4">
-          <h3 className="text-sm font-black text-accent-purple mb-2">ہدایات</h3>
+          <h3 className="text-sm font-black text-accent-purple mb-2">Instructions</h3>
           <ul className="space-y-2">
             {(channel?.instructionsUrdu || []).map((line, idx) => (
               <li key={`${line}-${idx}`} className="text-xs leading-relaxed text-gray-700 font-semibold">
@@ -241,12 +290,26 @@ function DepositPayoutContent() {
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[450px] bg-white p-4 border-t border-gray-100 z-50">
         <button
           onClick={submitDeposit}
-          disabled={isSubmitting || !transaction || !isPending}
+          disabled={isSubmitting || !transaction || !isPendingUpload}
           className="w-full bg-accent-purple text-white py-3 rounded-lg font-bold disabled:opacity-60"
         >
           {isSubmitting ? 'Submitting...' : 'Submit deposit'}
         </button>
       </div>
+
+      <ActionResultModal
+        isOpen={resultModal.isOpen}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+        onClose={() => {
+          const shouldRedirect = resultModal.redirectToHistory;
+          setResultModal((prev) => ({ ...prev, isOpen: false, redirectToHistory: false }));
+          if (shouldRedirect) {
+            router.push('/deposit-history');
+          }
+        }}
+      />
     </div>
   );
 }

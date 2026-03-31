@@ -31,6 +31,8 @@ export default function AdminBanners() {
   const [banners, setBanners] = useState<any[]>([]);
   const [form, setForm] = useState<BannerForm>(defaultForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const load = () => {
     fetch('/api/banners')
@@ -43,16 +45,52 @@ export default function AdminBanners() {
   }, []);
 
   const submit = async () => {
+    if (!form.image.trim()) {
+      setMessage('Banner image is required.');
+      return;
+    }
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId ? `/api/banners/${editingId}` : '/api/banners';
-    await fetch(url, {
+    const response = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(form)
     });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setMessage(data?.error || 'Unable to save banner.');
+      return;
+    }
+    setMessage(editingId ? 'Banner updated successfully.' : 'Banner added successfully.');
     setEditingId(null);
     setForm(defaultForm);
     load();
+  };
+
+  const uploadBannerImage = async (file: File | null) => {
+    if (!file || !token) return;
+
+    setUploading(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/uploads/banner', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.url) {
+        throw new Error(data?.error || 'Unable to upload image.');
+      }
+      setForm((prev) => ({ ...prev, image: String(data.url) }));
+      setMessage('Banner image uploaded.');
+    } catch (error: any) {
+      setMessage(error?.message || 'Unable to upload image.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEdit = (banner: any) => {
@@ -70,7 +108,13 @@ export default function AdminBanners() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/banners/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    const response = await fetch(`/api/banners/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setMessage(data?.error || 'Unable to delete banner.');
+      return;
+    }
+    setMessage('Banner deleted successfully.');
     load();
   };
 
@@ -91,7 +135,7 @@ export default function AdminBanners() {
           />
           <input
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
-            placeholder="Image path"
+            placeholder="Image path (auto-filled after upload)"
             value={form.image}
             onChange={(e) => setForm({ ...form, image: e.target.value })}
           />
@@ -127,8 +171,20 @@ export default function AdminBanners() {
             onChange={(e) => setForm({ ...form, placement: e.target.value })}
           >
             <option value="home">home</option>
+            <option value="activity">activity</option>
           </select>
+          <label className="md:col-span-2 border border-dashed border-purple-200 rounded-xl px-3 py-4 text-sm text-purple-700 bg-purple-50 cursor-pointer">
+            <span className="font-semibold">{uploading ? 'Uploading image...' : 'Upload banner image'}</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadBannerImage(e.target.files?.[0] || null)}
+              disabled={uploading}
+            />
+          </label>
         </div>
+        {message && <p className="text-xs font-semibold text-accent-purple">{message}</p>}
         <div className="flex items-center gap-3">
           <label className="text-sm text-gray-600 font-medium">Active</label>
           <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />

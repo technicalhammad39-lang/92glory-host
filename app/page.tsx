@@ -83,6 +83,20 @@ export default function HomePage() {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
+    try {
+      const homeReloadFlag = sessionStorage.getItem('home_reload_after_wingo');
+      if (homeReloadFlag === '1') {
+        sessionStorage.setItem('home_reload_after_wingo', 'done');
+        window.location.reload();
+        return;
+      }
+      if (homeReloadFlag === 'done') {
+        sessionStorage.removeItem('home_reload_after_wingo');
+      }
+    } catch {
+      // ignore storage errors
+    }
+
     setMounted(true);
     setHydrated(true);
     const splashShown = sessionStorage.getItem('splashShown');

@@ -134,7 +134,7 @@ export default function SuperJackpotPage() {
           ) : (
             <div className="pt-4 flex flex-col items-center">
               <div className="w-[190px] h-[120px] relative opacity-70">
-                <Image src="/wingo/assets/png/missningBg-c1f02bcd.png" alt="No data" fill sizes="190px" className="object-contain" />
+                <Image src="/empty-state.svg" alt="No data" fill sizes="190px" className="object-contain" />
               </div>
               <p className="text-[13px] text-[#7181a8]">You don&apos;t have a big jackpot yet, let&apos;s bet</p>
             </div>

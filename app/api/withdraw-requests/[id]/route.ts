@@ -58,8 +58,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       }
 
       const meta = parseMeta(request.meta);
+      const deductedOnSubmit = meta?.balanceDeductedOnSubmit === true || meta?.source === 'withdraw_request_v2';
 
-      if (decision === 'approve') {
+      if (decision === 'approve' && !deductedOnSubmit) {
         const debit = await tx.user.updateMany({
           where: { id: request.userId, balance: { gte: request.amount } },
           data: { balance: { decrement: request.amount } }
@@ -67,6 +68,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
         if (!debit.count) {
           throw new Error('INSUFFICIENT_BALANCE');
         }
+      }
+
+      if (decision === 'reject' && deductedOnSubmit) {
+        await tx.user.update({
+          where: { id: request.userId },
+          data: { balance: { increment: request.amount } }
+        });
       }
 
       return tx.transaction.update({

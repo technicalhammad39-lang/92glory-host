@@ -93,7 +93,7 @@ export default function GiftPage() {
           {!claims.length && (
             <div className="pt-4 flex flex-col items-center">
               <div className="w-[190px] h-[120px] relative opacity-70">
-                <Image src="/wingo/assets/png/missningBg-c1f02bcd.png" alt="No data" fill sizes="190px" className="object-contain" />
+                <Image src="/empty-state.svg" alt="No data" fill sizes="190px" className="object-contain" />
               </div>
               <p className="text-[12px] text-[#a7b1cc] mt-1">No data</p>
             </div>

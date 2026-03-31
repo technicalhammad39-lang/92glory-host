@@ -45,6 +45,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Only pending requests can be updated.' }, { status: 400 });
     }
 
+    const requestMeta = parseMeta(request.meta);
+    if (decision === 'approve' && !requestMeta?.screenshotUrl) {
+      return NextResponse.json({ error: 'Payment screenshot is required before approval.' }, { status: 400 });
+    }
+
     const reviewedAt = new Date().toISOString();
     const nextStatus = decision === 'approve' ? 'COMPLETED' : 'FAILED';
 

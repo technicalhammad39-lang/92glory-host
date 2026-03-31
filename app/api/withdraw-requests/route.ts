@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/api-helpers';
 import { apiError } from '@/lib/api-error';
+import { withTxRetry } from '@/lib/tx-retry';
 
 function normalizeStatus(value: unknown) {
   return String(value || '').trim().toUpperCase();
@@ -111,42 +112,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Selected withdrawal account is not available.' }, { status: 400 });
     }
 
-    const pendingTotal = await db.transaction.aggregate({
-      _sum: { amount: true },
-      where: {
-        userId: user.id,
-        type: 'WITHDRAW',
-        status: { in: ['PENDING', 'PROCESSING'] }
+    const transaction = await withTxRetry(async (tx) => {
+      const freshUser = await tx.user.findUnique({
+        where: { id: user.id },
+        select: { balance: true }
+      });
+      if (!freshUser || Number(freshUser.balance || 0) < amount) {
+        throw new Error('INSUFFICIENT_BALANCE');
       }
-    });
 
-    const pendingAmount = Number(pendingTotal._sum.amount || 0);
-    const availableBalance = Number(user.balance || 0) - pendingAmount;
-    if (amount > availableBalance) {
-      return NextResponse.json({ error: 'Insufficient available balance for a new withdrawal request.' }, { status: 400 });
-    }
-
-    const transaction = await db.transaction.create({
-      data: {
-        userId: user.id,
-        type: 'WITHDRAW',
-        amount,
-        status: 'PENDING',
-        meta: JSON.stringify({
-          source: 'withdraw_request',
-          accountId: account.id,
-          method: account.method,
-          accountTitle: account.accountTitle,
-          accountNumber: account.accountNumber,
-          accountName: account.accountName,
-          usdtAddress: account.usdtAddress,
-          note: note || null
-        })
+      const debited = await tx.user.updateMany({
+        where: { id: user.id, balance: { gte: amount } },
+        data: { balance: { decrement: amount } }
+      });
+      if (!debited.count) {
+        throw new Error('INSUFFICIENT_BALANCE');
       }
+
+      return tx.transaction.create({
+        data: {
+          userId: user.id,
+          type: 'WITHDRAW',
+          amount,
+          status: 'PENDING',
+          meta: JSON.stringify({
+            source: 'withdraw_request_v2',
+            balanceDeductedOnSubmit: true,
+            accountId: account.id,
+            method: account.method,
+            accountTitle: account.accountTitle,
+            accountNumber: account.accountNumber,
+            accountName: account.accountName,
+            usdtAddress: account.usdtAddress,
+            note: note || null
+          })
+        }
+      });
     });
 
     return NextResponse.json({ request: toRequestShape(transaction) });
   } catch (error) {
+    if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
+      return NextResponse.json({ error: 'Insufficient available balance for a new withdrawal request.' }, { status: 400 });
+    }
     return apiError('withdraw-requests.post', error);
   }
 }

@@ -1,4 +1,4 @@
-import { getGameIssue, getGameHistory, getMyBets, getProfile, submitBet } from './api.js';
+import { getGameIssue, getGameHistory, getMyBets, submitBet } from './api.js';
 import { GAME_LIST, formatMoney } from './gameConfig.js';
 import { renderTokenStrip } from './colorTokens.js';
 import { getElements } from './elements.js';
@@ -9,6 +9,8 @@ import { hideWinDialog, showWinDialog } from './updateWin.js';
 import { getGameFromItemElement, setActiveGameItem } from './utils.js';
 
 const PENDING_SETTLEMENTS_KEY = 'wingo_pending_settlements';
+const WINGO_OPEN_RELOAD_KEY = 'wingo_open_reload_once';
+const HOME_RELOAD_AFTER_WINGO_KEY = 'home_reload_after_wingo';
 const MAX_QTY = 9999;
 const originalRootFontSize = document.documentElement.style.fontSize;
 
@@ -60,8 +62,7 @@ function bindTopNavActions() {
 
   backContainer.style.cursor = 'pointer';
   backContainer.addEventListener('click', () => {
-    cleanupBeforeLeave();
-    window.location.href = '/';
+    goHomeWithReload();
   });
 }
 
@@ -132,6 +133,28 @@ function restoreRootFontSize() {
   document.documentElement.style.fontSize = originalRootFontSize;
 }
 
+function markHomeReloadFlag() {
+  try {
+    sessionStorage.setItem(HOME_RELOAD_AFTER_WINGO_KEY, '1');
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearWingoOpenReloadFlag() {
+  try {
+    sessionStorage.removeItem(WINGO_OPEN_RELOAD_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function goHomeWithReload() {
+  cleanupBeforeLeave();
+  markHomeReloadFlag();
+  window.location.replace('/');
+}
+
 function cleanupBeforeLeave() {
   if (state.clockIntervalId) {
     window.clearInterval(state.clockIntervalId);
@@ -150,6 +173,7 @@ function cleanupBeforeLeave() {
   }
 
   restoreRootFontSize();
+  clearWingoOpenReloadFlag();
   document.body.classList.remove('van-overflow-hidden');
   if (elements.ruleDialog) elements.ruleDialog.style.display = 'none';
   if (elements.overlay) elements.overlay.style.display = 'none';
@@ -161,7 +185,6 @@ function bindResponsiveRoot() {
   window.addEventListener('resize', setRootFontSize);
   window.addEventListener('pagehide', restoreRootFontSize);
   window.addEventListener('beforeunload', restoreRootFontSize);
-  window.addEventListener('popstate', cleanupBeforeLeave);
   document.addEventListener(
     'click',
     (event) => {
@@ -174,6 +197,21 @@ function bindResponsiveRoot() {
     },
     true
   );
+}
+
+function bindBackButtonHomeRedirect() {
+  try {
+    if (!window.history.state?.__wingoBackGuard) {
+      window.history.replaceState({ ...(window.history.state || {}), __wingoRoot: true }, '', window.location.href);
+      window.history.pushState({ __wingoBackGuard: true }, '', window.location.href);
+    }
+  } catch {
+    // ignore history API limitations
+  }
+
+  window.addEventListener('popstate', () => {
+    goHomeWithReload();
+  });
 }
 
 function updatePeriodName() {
@@ -674,7 +712,7 @@ async function syncCurrentRound(forceHistory = false) {
   if (forceHistory || !state.history.length || issueChanged) {
     await syncHistory();
   }
-  if (forceHistory || issueChanged || state.recordTab === 'my') {
+  if (state.recordTab === 'my') {
     await syncMyBets();
   }
 
@@ -760,17 +798,6 @@ function bindVisibilityRefresh() {
   window.addEventListener('focus', refresh);
 }
 
-async function bootstrapBalance() {
-  try {
-    const profile = await getProfile();
-    if (profile?.user?.balance !== undefined) {
-      setWalletBalance(elements, profile.user.balance);
-    }
-  } catch {
-    // user can continue in guest mode
-  }
-}
-
 async function initialize() {
   if (state.initialized) return;
   if (!elements.root) return;
@@ -779,6 +806,7 @@ async function initialize() {
   applyBranding();
   bindTopNavActions();
   bindResponsiveRoot();
+  bindBackButtonHomeRedirect();
   bindVoiceControls();
   bindRuleDialog();
   bindPopupSelectionHandlers();
@@ -797,21 +825,15 @@ async function initialize() {
   updatePopupAmount();
   setWalletBalance(elements, 0);
 
-  startClockLoop();
-  startPolling();
-  startMyBetsPolling();
-
-  try {
-    await bootstrapBalance();
-  } catch {
-    // no-op
-  }
-
   try {
     await syncCurrentRound(true);
   } catch {
     // no-op
   }
+
+  startClockLoop();
+  startPolling();
+  startMyBetsPolling();
 }
 
 function boot() {
