@@ -5,13 +5,18 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack && node scripts/prepare-standalone.mjs",
+    "build:vps": "node scripts/verify-vps-env.mjs && next build --webpack && node scripts/prepare-standalone.mjs",
     "start": "next start",
     "start:standalone": "node .next/standalone/server.js",
-    "db:sync": "node scripts/sync-db-schema.mjs",
-    "db:push": "prisma db push",
-    "db:generate": "prisma generate",
+    "start:vps": "node scripts/verify-vps-env.mjs && node .next/standalone/server.js",
+    "db:sync": "node scripts/run-db-sync.mjs local",
+    "db:sync:vps": "node scripts/run-db-sync.mjs vps",
+    "db:push": "node scripts/run-prisma.mjs local db push",
+    "db:push:vps": "node scripts/run-prisma.mjs vps db push",
+    "db:generate": "node scripts/run-prisma.mjs auto generate",
+    "db:migrate:deploy": "node scripts/run-prisma.mjs vps migrate deploy",
     "lint": "eslint .",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/run-prisma.mjs auto generate"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",

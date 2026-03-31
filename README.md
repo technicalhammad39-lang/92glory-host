@@ -1,60 +1,83 @@
-# 92 Glory0 (Next.js + Prisma)
+# 92 Glory0 (Next.js + Prisma + MySQL)
 
-## Requirements
-- Node.js 20+
-- MySQL database
+## Environment Matrix
+- Local development/testing (VS Code/Codex): `.env.local` -> **Hostinger MySQL**
+- VPS production: `.env` -> **VPS local MySQL (127.0.0.1)**
+- Prisma provider remains `mysql` and `schema.prisma` continues to use `env("DATABASE_URL")`.
 
-## Local Setup
-1. Install dependencies:
+## Required Env Files
+
+### Local (`.env.local`)
+Use this exact DB URL for local dev/test:
+```env
+DATABASE_URL="mysql://u956471375_gloryuser:92Glory786@srv547.hstgr.io:3306/u956471375_92glorydb"
+```
+
+### VPS (`.env`)
+Use this exact DB URL on production VPS only:
+```env
+DATABASE_URL="mysql://gloryuser:92Glory786@127.0.0.1:3306/glorydb"
+```
+
+### Examples in repo
+- `.env.local.example` (Hostinger/local dev profile)
+- `.env.vps.example` (VPS production profile)
+- `.env.example` (base fallback + quick reference)
+
+## Local Development Workflow
+1. Install:
 ```bash
 npm install
 ```
-2. Create env file from example and set values:
+2. Create local env:
 ```bash
-cp .env.example .env.local
+cp .env.local.example .env.local
 ```
-3. Update `.env.local`:
-- `DATABASE_URL` (VPS local MySQL connection string)
-- `JWT_SECRET`
-- `ADMIN_PANEL_EMAIL`
-- `ADMIN_PANEL_PASSWORD`
-- `AUTO_SEED=true` (default)
-
-4. Push/sync Prisma schema to your database:
+3. Prisma (local profile is auto-selected by scripts):
 ```bash
-npx prisma db push
+npm run db:generate
+npm run db:push
 npm run db:sync
 ```
-
-5. Start dev server:
+4. Run app:
 ```bash
 npm run dev
 ```
 
-## Production
-1. Build:
+## VPS Production Workflow
+1. Ensure `.env.local` is **not present** on VPS.
+2. Create/verify production env:
 ```bash
-pnpm build
+cp .env.vps.example .env
 ```
-2. Start:
+3. Before deploy/start:
 ```bash
-pnpm start
+npm install
+npm run db:migrate:deploy
+npm run db:sync:vps
+npm run build:vps
+```
+4. Start production server:
+```bash
+npm run start:vps
 ```
 
-### VPS Runtime
-- After `pnpm build`, run the standalone server:
-```bash
-pnpm start:standalone
-```
-- `build` now auto-copies `public` and `.next/static` into `.next/standalone` so chunk/css files are always available in production.
+`build:vps` and `start:vps` run a guard (`scripts/verify-vps-env.mjs`) that blocks startup if:
+- `DATABASE_URL` is not local VPS MySQL (`127.0.0.1` / `localhost`)
+- `.env.local` exists on VPS and may override `.env`
 
-### VPS MySQL (required)
-- Use only the VPS local database:
-```env
-DATABASE_URL="mysql://gloryuser:92Glory786@127.0.0.1:3306/glorydb"
+## After Git Push (on VPS)
+```bash
+git pull origin main
+npm install
+npm run db:migrate:deploy
+npm run db:sync:vps
+npm run build:vps
+# restart app process (pm2/systemd) using npm run start:vps
 ```
-- Do not use the old Hostinger managed MySQL URL.
 
 ## Notes
-- The app seeds default home/admin data automatically (unless `AUTO_SEED=false`).
-- If your DB is new/empty, run `npx prisma db push` before first deployment.
+- `.env*` files are git-ignored; only example env files are tracked.
+- Keep production and development databases isolated.
+- Do not reuse Hostinger dev DB in VPS production runtime.
+

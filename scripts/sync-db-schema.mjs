@@ -1,4 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import { loadEnvTarget } from './env-loader.mjs';
+
+const envTarget = process.env.DB_ENV_TARGET || 'local';
+const loadedEnv = loadEnvTarget(envTarget);
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(`[db-sync] DATABASE_URL missing. target=${envTarget} files=${loadedEnv.loadedFiles.join(',') || 'none'}`);
+}
+
+console.log(
+  `[db-sync] env target=${loadedEnv.target} host=${loadedEnv.databaseHost || 'unknown'} files=${loadedEnv.loadedFiles.join(',') || 'none'}`
+);
 
 const db = new PrismaClient();
 

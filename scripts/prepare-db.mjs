@@ -1,8 +1,20 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { loadEnvTarget } from './env-loader.mjs';
 
 const prismaCliPath = path.join(process.cwd(), 'node_modules', 'prisma', 'build', 'index.js');
+const envTarget = process.env.DB_ENV_TARGET || 'vps';
+const loadedEnv = loadEnvTarget(envTarget);
+
+if (!process.env.DATABASE_URL) {
+  process.stderr.write(`[DB] DATABASE_URL missing. target=${envTarget} files=${loadedEnv.loadedFiles.join(',') || 'none'}\n`);
+  process.exit(1);
+}
+
+process.stdout.write(
+  `[DB] prepare-db env target=${loadedEnv.target} host=${loadedEnv.databaseHost || 'unknown'} files=${loadedEnv.loadedFiles.join(',') || 'none'}\n`
+);
 
 function sanitizeDatabaseUrl(url) {
   if (!url) return url;
