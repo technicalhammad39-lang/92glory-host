@@ -137,7 +137,7 @@ export default function VIPPage() {
   const userVipLevel = Math.max(1, currentUser?.vipLevel || 1);
   const userExp = Math.max(0, currentUser?.exp || 0);
   const uidLabel = currentUser?.uid || authUser?.inviteCode || (currentUser?.id || 'GUEST').substring(0, 8).toUpperCase();
-  const displayName = (currentUser?.name || '').trim() || `MEMBER${uidLabel.slice(-4)}`;
+  const displayName = (currentUser?.name || '').trim() || 'Hammad Demo';
 
   const defaultCardIndex = Math.max(0, Math.min(userVipLevel - 1, Math.max(vipLevels.length - 1, 0)));
   const effectiveCardIndex = vipLevels[activeCardIndex] ? activeCardIndex : defaultCardIndex;

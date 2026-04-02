@@ -235,19 +235,20 @@ const defaultPages = [
 
 export const defaultSiteConfig = {
   brandName: '92 Glory0',
-  announcement: 'Welcome to 92 Glory0, the most trusted and fairest site, you can play our games to get rich.',
-  announcementButton: 'Detail'
+  announcement:
+    'DEMO ONLY: This website is for sale and for viewing only. Do not deposit or make any transaction. Contact Hammad on Telegram: traderxhammad. After purchase, all demo/sale notices will be removed and the website will be customized according to the client requirements.',
+  announcementButton: 'Notice'
 };
 
 const defaultPopup = {
-  title: 'Welcome To 92 Glory0',
+  title: 'Demo Notice',
   content: [
-    'WELCOME TO 92 GLORY0',
-    'Avoid Scams, Stay Safe',
-    'Protect Your Personal Information',
-    'Enjoy the Rewards We Offer',
-    'Experience the Fastest and Safest Transactions',
-    'Have Fun and Good Luck!'
+    'This website is currently for demo/viewing only.',
+    'Please do not make any deposit or money transaction.',
+    'This is a demo version provided by Hammad.',
+    'If you are interested in buying this website, contact Hammad Developer on Telegram: traderxhammad.',
+    'This website is for sale.',
+    'After the deal is completed, all demo/sale notices will be removed and the website will be finalized according to the client requirements.'
   ].join('\n'),
   order: 1,
   isActive: true

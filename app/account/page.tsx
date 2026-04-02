@@ -42,8 +42,8 @@ export default function AccountPage() {
   }, [user]);
 
   const displayName = useMemo(() => {
-    if (!user) return 'MEMBER0000';
-    const fallback = `MEMBER${uidValue.slice(-4) || '0000'}`;
+    if (!user) return 'Hammad Demo';
+    const fallback = 'Hammad Demo';
     return (user.name || '').trim() || fallback;
   }, [user, uidValue]);
 

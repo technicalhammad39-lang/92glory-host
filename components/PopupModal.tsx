@@ -11,7 +11,7 @@ interface PopupModalProps {
   confirmText?: string;
 }
 
-export function PopupModal({ isOpen, onClose, title, content, confirmText = "Confirm" }: PopupModalProps) {
+export function PopupModal({ isOpen, onClose, title, content, confirmText = 'Confirm' }: PopupModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -29,17 +29,11 @@ export function PopupModal({ isOpen, onClose, title, content, confirmText = "Con
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative w-full max-w-[320px] bg-white rounded-2xl overflow-hidden shadow-2xl"
           >
-            {/* Header */}
             <div className="bg-gradient-to-r from-blue-400 to-blue-500 py-3 px-4 text-center">
               <h3 className="text-white font-bold text-base">{title}</h3>
             </div>
 
-            {/* Body */}
             <div className="p-5 text-center space-y-4">
-              <div className="text-orange-400 font-bold text-sm">
-                👑 {title} 👑
-              </div>
-              
               <div className="space-y-3 text-xs font-bold text-gray-700 leading-relaxed">
                 {content.map((line, i) => (
                   <p key={i}>{line}</p>

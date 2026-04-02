@@ -43,6 +43,12 @@ interface PopupItem {
   content: string;
 }
 
+const DEMO_POPUP_TITLE = 'Demo Notice';
+const DEMO_POPUP_CONTENT =
+  'This website is currently for demo/viewing only. Please do not make any deposit or money transaction. This is a demo version provided by Hammad. If you are interested in buying this website, contact Hammad Developer on Telegram: traderxhammad. This website is for sale. After the deal is completed, all demo/sale notices will be removed and the website will be finalized according to the client requirements.';
+const DEMO_TICKER_TEXT =
+  'DEMO ONLY: This website is for sale and for viewing only. Do not deposit or make any transaction. Contact Hammad on Telegram: traderxhammad. After purchase, all demo/sale notices will be removed and the website will be customized according to the client requirements.';
+
 function parseProviders(value?: string | null) {
   if (!value) return [] as string[];
   try {
@@ -73,12 +79,18 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('lottery');
   const [activeProviders, setActiveProviders] = useState<Record<string, string>>({});
   const [mounted, setMounted] = useState(false);
-  const [siteAnnouncement, setSiteAnnouncement] = useState('');
-  const [announcementButton, setAnnouncementButton] = useState('Detail');
+  const [siteAnnouncement, setSiteAnnouncement] = useState(DEMO_TICKER_TEXT);
+  const [announcementButton, setAnnouncementButton] = useState('Notice');
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [games, setGames] = useState<GameItem[]>([]);
-  const [popups, setPopups] = useState<PopupItem[]>([]);
+  const [popups, setPopups] = useState<PopupItem[]>([
+    {
+      id: 'demo-notice',
+      title: DEMO_POPUP_TITLE,
+      content: DEMO_POPUP_CONTENT
+    }
+  ]);
   const [lotterySwiper, setLotterySwiper] = useState<any>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -113,9 +125,15 @@ export default function HomePage() {
         setBanners(data.banners || []);
         setCategories(data.categories || []);
         setGames(data.games || []);
-        setPopups(data.popups || []);
-        setSiteAnnouncement(data.site?.announcement || '');
-        setAnnouncementButton(data.site?.announcementButton || 'Detail');
+        setPopups([
+          {
+            id: data.popups?.[0]?.id || 'demo-notice',
+            title: DEMO_POPUP_TITLE,
+            content: DEMO_POPUP_CONTENT
+          }
+        ]);
+        setSiteAnnouncement(DEMO_TICKER_TEXT);
+        setAnnouncementButton('Notice');
 
         const defaults: Record<string, string> = {};
         (data.categories || []).forEach((cat: CategoryItem) => {
@@ -309,7 +327,7 @@ export default function HomePage() {
           <Volume2 className="w-4 h-4 text-accent-purple shrink-0" />
           <div className="flex-1 overflow-hidden">
             <p className="text-gray-600 text-xs font-semibold whitespace-nowrap animate-marquee">
-              {siteAnnouncement || 'Welcome to 92 Glory0, the most trusted and fairest site, you can play our games to get rich.'}
+              {siteAnnouncement || DEMO_TICKER_TEXT}
             </p>
           </div>
           <button className="bg-gradient-to-r from-accent-purple to-purple-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shrink-0 shadow-sm active:scale-95 transition-transform flex items-center gap-1">
@@ -443,19 +461,25 @@ export default function HomePage() {
           <h3 className="text-gray-800 font-black text-sm">Winning information</h3>
         </div>
         <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[
+            { name: 'Hammad', masked: 'xxx030xx' },
+            { name: 'Hammad X Ali', masked: 'xxx030xx' },
+            { name: 'Hammad Ali', masked: 'xxx030xx' },
+            { name: 'Hammad Demo', masked: 'xxx030xx' },
+            { name: 'Hammad', masked: 'xxx030xx' }
+          ].map((row, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <div className="flex items-center gap-3">
                 <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100">
                   <Image src={`/casinocat.png`} alt="User" fill sizes="36px" className="object-cover" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-500">User</p>
+                  <p className="text-[10px] font-bold text-gray-500">{row.name}</p>
                   <p className="text-[10px] font-bold text-gray-400">Winning amount</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black text-gray-700 font-mono">Mem***{String.fromCharCode(65 + i)}X</p>
+                <p className="text-[10px] font-black text-gray-700 font-mono">{row.masked}</p>
                 <p className="text-[11px] font-black text-accent-pink">Rs {mounted ? (Math.random() * 5000 + 100).toFixed(2) : '0.00'}</p>
               </div>
             </div>
