@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { StartupScreen } from '@/components/StartupScreen';
-import { PopupModal } from '@/components/PopupModal';
 import { Volume2, ChevronRight, ChevronLeft, Play, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -37,22 +36,6 @@ interface GameItem {
   provider?: string | null;
 }
 
-interface PopupItem {
-  id: string;
-  title: string;
-  content: string;
-}
-
-const DEMO_POPUP_TITLE = 'Demo Notice';
-const DEMO_POPUP_CONTENT =
-  'This website is currently for demo/viewing only. Please do not make any deposit or money transaction. This is a demo version provided by Hammad. If you are interested in buying this website, contact Hammad Developer on Telegram: traderxhammad. This website is for sale. After the deal is completed, all demo/sale notices will be removed and the website will be finalized according to the client requirements.';
-const DEMO_TICKER_TEXT =
-  'Website demo by Hammad. This website is for sale. Do not deposit or make any transaction. Contact on Telegram';
-const DEMO_TELEGRAM_URL = 'https://t.me/traderxhammad';
-const DEMO_TELEGRAM_HANDLE = '@traderxhammad';
-const DEMO_WHATSAPP_URL = 'https://wa.me/923209310656';
-const DEMO_WHATSAPP_NUMBER = '923209310656';
-
 function parseProviders(value?: string | null) {
   if (!value) return [] as string[];
   try {
@@ -64,6 +47,8 @@ function parseProviders(value?: string | null) {
 }
 
 const FALLBACK_GAME_IMAGE = '/card1.png';
+const DEFAULT_ANNOUNCEMENT =
+  'Website demo by Hammad. This website is for sale. Do not deposit or make any transaction.';
 const SECTION_SUBTITLES: Record<string, string> = {
   lottery: 'Fair and diverse lottery gameplay',
   slots: 'Online real-time game dealers, all verified fair games',
@@ -79,22 +64,14 @@ const SECTION_SUBTITLES: Record<string, string> = {
 export default function HomePage() {
   const [hydrated, setHydrated] = useState(false);
   const [showStartup, setShowStartup] = useState(false);
-  const [currentPopupIndex, setCurrentPopupIndex] = useState(-1);
   const [activeCategory, setActiveCategory] = useState('lottery');
   const [activeProviders, setActiveProviders] = useState<Record<string, string>>({});
   const [mounted, setMounted] = useState(false);
-  const [siteAnnouncement, setSiteAnnouncement] = useState(DEMO_TICKER_TEXT);
-  const [announcementButton, setAnnouncementButton] = useState('Notice');
+  const [siteAnnouncement, setSiteAnnouncement] = useState('');
+  const [announcementButton, setAnnouncementButton] = useState('Detail');
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [games, setGames] = useState<GameItem[]>([]);
-  const [popups, setPopups] = useState<PopupItem[]>([
-    {
-      id: 'demo-notice',
-      title: DEMO_POPUP_TITLE,
-      content: DEMO_POPUP_CONTENT
-    }
-  ]);
   const [lotterySwiper, setLotterySwiper] = useState<any>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -129,15 +106,8 @@ export default function HomePage() {
         setBanners(data.banners || []);
         setCategories(data.categories || []);
         setGames(data.games || []);
-        setPopups([
-          {
-            id: data.popups?.[0]?.id || 'demo-notice',
-            title: DEMO_POPUP_TITLE,
-            content: DEMO_POPUP_CONTENT
-          }
-        ]);
-        setSiteAnnouncement(data.site?.announcement || DEMO_TICKER_TEXT);
-        setAnnouncementButton(data.site?.announcementButton || 'Notice');
+        setSiteAnnouncement(data.site?.announcement || DEFAULT_ANNOUNCEMENT);
+        setAnnouncementButton(data.site?.announcementButton || 'Detail');
 
         const defaults: Record<string, string> = {};
         (data.categories || []).forEach((cat: CategoryItem) => {
@@ -148,26 +118,9 @@ export default function HomePage() {
       });
   }, []);
 
-  useEffect(() => {
-    if (!showStartup && popups.length) {
-      setCurrentPopupIndex(0);
-    }
-  }, [showStartup, popups]);
-
   const handleStartupComplete = () => {
     sessionStorage.setItem('splashShown', 'true');
     setShowStartup(false);
-    setCurrentPopupIndex(0);
-  };
-
-  const activePopup = currentPopupIndex >= 0 ? popups[currentPopupIndex] : null;
-
-  const closePopup = () => {
-    if (currentPopupIndex < popups.length - 1) {
-      setCurrentPopupIndex((prev) => prev + 1);
-    } else {
-      setCurrentPopupIndex(-1);
-    }
   };
 
   const gamesByCategory = useMemo(() => {
@@ -285,37 +238,6 @@ export default function HomePage() {
 
       <Header showLogo />
 
-      {activePopup && (
-        <PopupModal
-          isOpen={!!activePopup}
-          onClose={closePopup}
-          title={activePopup.title}
-          content={(activePopup.content || '').split('\n')}
-          confirmText="Confirm"
-        />
-      )}
-
-      {/* Top Demo Ticker */}
-      <div className="px-3 pt-2 pb-2 bg-white">
-        <div className="h-10 rounded-full border border-[#f6c98a] bg-gradient-to-r from-[#fff0a9] to-[#ffd3b2] flex items-center px-3 overflow-hidden">
-          <div className="demo-ticker-track">
-            {[0, 1].map((item) => (
-              <span key={item} className="inline-flex items-center text-[#8a3b3b] text-xs font-semibold whitespace-nowrap pr-10">
-                <span>{DEMO_TICKER_TEXT}</span>
-                <span className="px-1">|</span>
-                <a href={DEMO_TELEGRAM_URL} target="_blank" rel="noreferrer" className="underline text-[#7b37d8] font-bold">
-                  {DEMO_TELEGRAM_HANDLE}
-                </a>
-                <span className="px-1">|</span>
-                <a href={DEMO_WHATSAPP_URL} target="_blank" rel="noreferrer" className="underline text-[#0f9d58] font-bold">
-                  WhatsApp {DEMO_WHATSAPP_NUMBER}
-                </a>
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Banner Section */}
       <div className="px-3 pt-1 bg-white">
         <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden shadow-sm">
@@ -352,7 +274,7 @@ export default function HomePage() {
           <Volume2 className="w-4 h-4 text-accent-purple shrink-0" />
           <div className="flex-1 overflow-hidden">
             <p className="text-gray-600 text-xs font-semibold whitespace-nowrap animate-marquee">
-              {siteAnnouncement || DEMO_TICKER_TEXT}
+              {siteAnnouncement || DEFAULT_ANNOUNCEMENT}
             </p>
           </div>
           <button className="bg-gradient-to-r from-accent-purple to-purple-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shrink-0 shadow-sm active:scale-95 transition-transform flex items-center gap-1">

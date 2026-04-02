@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { AuthBootstrap } from '@/components/AuthBootstrap';
 import { ChunkRecovery } from '@/components/ChunkRecovery';
+import { GlobalDemoNotice } from '@/components/GlobalDemoNotice';
 import { SupportWidget } from '@/components/SupportWidget';
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <div className="w-full max-w-[450px] bg-white min-h-screen shadow-xl relative flex flex-col overflow-x-hidden">
           <ChunkRecovery />
           <AuthBootstrap />
+          <GlobalDemoNotice />
           {children}
           <SupportWidget />
         </div>
