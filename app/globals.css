@@ -79,6 +79,14 @@
   animation: marquee 14s linear infinite;
 }
 
+.demo-ticker-track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+  animation: marquee 18s linear infinite;
+}
+
 .font-black {
   font-weight: 700 !important;
 }
