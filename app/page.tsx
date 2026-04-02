@@ -5,7 +5,7 @@ import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { StartupScreen } from '@/components/StartupScreen';
 import { PopupModal } from '@/components/PopupModal';
-import { Volume2, ChevronRight, ChevronLeft, Download } from 'lucide-react';
+import { Volume2, ChevronRight, ChevronLeft, Play, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +50,8 @@ const DEMO_TICKER_TEXT =
   'Website demo by Hammad. This website is for sale. Do not deposit or make any transaction. Contact on Telegram';
 const DEMO_TELEGRAM_URL = 'https://t.me/traderxhammad';
 const DEMO_TELEGRAM_HANDLE = '@traderxhammad';
+const DEMO_WHATSAPP_URL = 'https://wa.me/923209310656';
+const DEMO_WHATSAPP_NUMBER = '923209310656';
 
 function parseProviders(value?: string | null) {
   if (!value) return [] as string[];
@@ -82,6 +84,7 @@ export default function HomePage() {
   const [activeProviders, setActiveProviders] = useState<Record<string, string>>({});
   const [mounted, setMounted] = useState(false);
   const [siteAnnouncement, setSiteAnnouncement] = useState(DEMO_TICKER_TEXT);
+  const [announcementButton, setAnnouncementButton] = useState('Notice');
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [games, setGames] = useState<GameItem[]>([]);
@@ -133,7 +136,8 @@ export default function HomePage() {
             content: DEMO_POPUP_CONTENT
           }
         ]);
-        setSiteAnnouncement(DEMO_TICKER_TEXT);
+        setSiteAnnouncement(data.site?.announcement || DEMO_TICKER_TEXT);
+        setAnnouncementButton(data.site?.announcementButton || 'Notice');
 
         const defaults: Record<string, string> = {};
         (data.categories || []).forEach((cat: CategoryItem) => {
@@ -291,33 +295,29 @@ export default function HomePage() {
         />
       )}
 
-      {/* Announcement Strip */}
-      <div className="px-3 pt-3 pb-2 bg-white border-b border-gray-100">
-        <div className="bg-[#F5F2FF] rounded-full h-11 flex items-center px-3 gap-2 border border-purple-100">
-          <Volume2 className="w-4 h-4 text-accent-purple shrink-0" />
-          <div className="flex-1 overflow-hidden">
-            <div className="demo-ticker-track">
-              {[0, 1].map((item) => (
-                <span key={item} className="inline-flex items-center text-gray-600 text-xs font-semibold whitespace-nowrap pr-10">
-                  <span>{siteAnnouncement || DEMO_TICKER_TEXT}</span>
-                  <span className="px-1">:</span>
-                  <a
-                    href={DEMO_TELEGRAM_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#7b37d8] underline font-bold"
-                  >
-                    {DEMO_TELEGRAM_HANDLE}
-                  </a>
-                </span>
-              ))}
-            </div>
+      {/* Top Demo Ticker */}
+      <div className="px-3 pt-2 pb-2 bg-white">
+        <div className="h-10 rounded-full border border-[#f6c98a] bg-gradient-to-r from-[#fff0a9] to-[#ffd3b2] flex items-center px-3 overflow-hidden">
+          <div className="demo-ticker-track">
+            {[0, 1].map((item) => (
+              <span key={item} className="inline-flex items-center text-[#8a3b3b] text-xs font-semibold whitespace-nowrap pr-10">
+                <span>{DEMO_TICKER_TEXT}</span>
+                <span className="px-1">|</span>
+                <a href={DEMO_TELEGRAM_URL} target="_blank" rel="noreferrer" className="underline text-[#7b37d8] font-bold">
+                  {DEMO_TELEGRAM_HANDLE}
+                </a>
+                <span className="px-1">|</span>
+                <a href={DEMO_WHATSAPP_URL} target="_blank" rel="noreferrer" className="underline text-[#0f9d58] font-bold">
+                  WhatsApp {DEMO_WHATSAPP_NUMBER}
+                </a>
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Banner Section */}
-      <div className="px-3 pt-2 pb-1 bg-white">
+      <div className="px-3 pt-1 bg-white">
         <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden shadow-sm">
           <Swiper
             modules={[Autoplay, Pagination]}
@@ -343,6 +343,21 @@ export default function HomePage() {
               );
             })}
           </Swiper>
+        </div>
+      </div>
+
+      {/* Announcement Strip */}
+      <div className="px-3 py-3 bg-white border-b border-gray-100">
+        <div className="bg-[#F5F2FF] rounded-full h-11 flex items-center px-4 gap-3 border border-purple-100">
+          <Volume2 className="w-4 h-4 text-accent-purple shrink-0" />
+          <div className="flex-1 overflow-hidden">
+            <p className="text-gray-600 text-xs font-semibold whitespace-nowrap animate-marquee">
+              {siteAnnouncement || DEMO_TICKER_TEXT}
+            </p>
+          </div>
+          <button className="bg-gradient-to-r from-accent-purple to-purple-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shrink-0 shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+            <Play className="w-3 h-3 fill-current" /> {announcementButton}
+          </button>
         </div>
       </div>
 
